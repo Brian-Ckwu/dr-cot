@@ -1,0 +1,12 @@
+
+patient:
+  model_config:
+    model: "gpt-3.5-turbo"
+    temperature: 0
+    max_tokens: 128
+
+doctor:
+  model_config:
+    model: "gpt-3.5-turbo"
+    temperature: 0
+    max_tokens: 512

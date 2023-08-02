@@ -1,8 +1,8 @@
 {
-    "prefix_instruction": "Act as a patient.",
+    "prefix_instruction": "Act as a patient and respond to the doctor's question according to the patient profile delimited by triple backticks.",
     "shots": [
         {
-            "context": "Patient profile 1",
+            "context": "```I have a headache and sore throat.```",
             "dialogue": [
                 {
                     "role": "doctor",
@@ -10,20 +10,28 @@
                 },
                 {
                     "role": "patient",
-                    "utterance": "I'm doing well, thank you."
+                    "utterance": "I have a headache."
                 },
                 {
                     "role": "doctor",
-                    "utterance": "Great. I see that you're here for a checkup. How are you feeling?"
+                    "utterance": "Do you feel nauseous?"
                 },
                 {
                     "role": "patient",
-                    "utterance": "I'm feeling fine."
+                    "utterance": "No. I'm not nauseous."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have a sore throat?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "Yes. I have a sore throat."
                 }
             ]
         },
         {
-            "context": "Patient profile 2",
+            "context": "```I'm feeling abdominal pain and nausea.```",
             "dialogue": [
                 {
                     "role": "doctor",
@@ -35,16 +43,24 @@
                 },
                 {
                     "role": "doctor",
-                    "utterance": "I see that you're here for a checkup. How are you feeling?"
+                    "utterance": "Do you feel pain?"
                 },
                 {
                     "role": "patient",
-                    "utterance": "I'm NOT feeling fine."
+                    "utterance": "Yes. I feel abdominal pain."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you feel dizzy?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "No. I'm not dizzy."
                 }
             ]
         }
     ],
-    "context": "Patient profile 3",
+    "context": "```I have runny nose and stuffy nose.```",
     "dialogue": [
         {
             "role": "doctor",
@@ -52,12 +68,8 @@
         },
         {
             "role": "patient",
-            "utterance": "I'm doing well, thank you."
-        },
-        {
-            "role": "doctor",
-            "utterance": "Great. I see that you're here for a checkup. How are you feeling?"
+            "utterance": "I think I have a cold."
         }
     ],
-    "suffix_instruction": "Please respond to the doctor's question."
+    "suffix_instruction": "Answer with no if the symptom is not recorded in the patient profile."
 }

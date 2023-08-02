@@ -1,4 +1,5 @@
 import json
+import yaml
 from enum import Enum
 from typing import Any
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 from shot import Shot
 from context import Context
 from dialogue import Dialogue
-from model import Model, APIModel
+from model import Model, OpenAIModel
 
 class Role(Enum):
     """The role of the bot in the dialogue."""
@@ -97,6 +98,20 @@ class PatientBot(Bot):
             model
         )
         self.role = Role.PATIENT
+    
+    def respond(self, question: str) -> str:
+        """Respond to the doctor's question."""
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=question)
+
+        if isinstance(self.model, OpenAIModel):
+            if self.model.config["model"] in self.model.chatcompletion_models:
+                prompt = self.get_chatcompletion_prompt()
+            else:
+                prompt = self.get_completion_prompt()
+            response = self.model.generate(prompt)
+        else:
+            raise NotImplementedError
+        return response
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
@@ -125,6 +140,9 @@ if __name__ == "__main__":
     # test PatientBot.get_chatcompletion_prompt() and DoctorBot.get_chatcompletion_prompt()
     
     patient_prompt = json.loads(Path("../../prompts/patient/debug.json").read_bytes())
+    with open("../../experiments/configs/debug.yml") as f:
+        args = yaml.safe_load(f)
+    
     patient_bot = PatientBot(
         prefix_instruction=patient_prompt["prefix_instruction"],
         shots=[
@@ -136,24 +154,26 @@ if __name__ == "__main__":
         context=Context(raw_text=patient_prompt["context"]),
         dialogue=Dialogue(data=patient_prompt["dialogue"]),
         suffix_instruction=patient_prompt["suffix_instruction"],
-        model=APIModel()
+        model=OpenAIModel(config=args["patient"]["model_config"])
     )
-    chatcompletion_prompt = patient_bot.get_chatcompletion_prompt()
-    print(json.dumps(chatcompletion_prompt, indent=4))
+    
+    question = "Do you have a headache?"
+    response = patient_bot.respond(question)
+    print(response)
 
-    doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
-    doctor_bot = DoctorBot(
-        prefix_instruction=doctor_prompt["prefix_instruction"],
-        shots=[
-            Shot(
-                context=Context(raw_text=shot["context"]),
-                dialogue=Dialogue(data=shot["dialogue"])
-            ) for shot in doctor_prompt["shots"]
-        ],
-        context=Context(raw_text=doctor_prompt["context"]),
-        dialogue=Dialogue(data=doctor_prompt["dialogue"]),
-        suffix_instruction=doctor_prompt["suffix_instruction"],
-        model=APIModel()
-    )
-    chatcompletion_prompt = doctor_bot.get_chatcompletion_prompt()
-    print(json.dumps(chatcompletion_prompt, indent=4))
+    # doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
+    # doctor_bot = DoctorBot(
+    #     prefix_instruction=doctor_prompt["prefix_instruction"],
+    #     shots=[
+    #         Shot(
+    #             context=Context(raw_text=shot["context"]),
+    #             dialogue=Dialogue(data=shot["dialogue"])
+    #         ) for shot in doctor_prompt["shots"]
+    #     ],
+    #     context=Context(raw_text=doctor_prompt["context"]),
+    #     dialogue=Dialogue(data=doctor_prompt["dialogue"]),
+    #     suffix_instruction=doctor_prompt["suffix_instruction"],
+    #     model=APIModel()
+    # )
+    # chatcompletion_prompt = doctor_bot.get_chatcompletion_prompt()
+    # print(json.dumps(chatcompletion_prompt, indent=4))
