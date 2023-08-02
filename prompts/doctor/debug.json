@@ -52,8 +52,12 @@
         },
         {
             "role": "patient",
-            "utterance": "I'm doing well, thank you."
+            "utterance": "I have a cough."
+        },
+        {
+            "role": "doctor",
+            "utterance": "Do you have a fever?"
         }
     ],
-    "suffix_instruction": "Please ask a patient a question."
+    "suffix_instruction": "Please ask the patient about their symptoms."
 }

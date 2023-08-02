@@ -76,6 +76,24 @@ class Bot(object):
                 "content": self.suffix_instruction
             })
         return msgs
+    
+    def respond(self, utterance: str) -> str:
+        """Respond to the counterpart chatbot's utterance."""
+        role = Role.PATIENT if self.role == Role.DOCTOR else Role.DOCTOR
+        self.dialogue.add_utterance(role, utterance)
+
+        if isinstance(self.model, OpenAIModel):
+            if self.model.config["model"] in self.model.chatcompletion_models:
+                prompt = self.get_chatcompletion_prompt()
+            else:
+                prompt = self.get_completion_prompt()
+            response = self.model.generate(prompt)
+        else:
+            raise NotImplementedError
+
+        # TODO: May need additional parsing here to separate inner monologue from actual response
+        self.dialogue.add_utterance(self.role, response)
+        return response
 
 class PatientBot(Bot):
     """The chat bot playing the patient role."""
@@ -98,20 +116,6 @@ class PatientBot(Bot):
             model
         )
         self.role = Role.PATIENT
-    
-    def respond(self, question: str) -> str:
-        """Respond to the doctor's question."""
-        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=question)
-
-        if isinstance(self.model, OpenAIModel):
-            if self.model.config["model"] in self.model.chatcompletion_models:
-                prompt = self.get_chatcompletion_prompt()
-            else:
-                prompt = self.get_completion_prompt()
-            response = self.model.generate(prompt)
-        else:
-            raise NotImplementedError
-        return response
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
@@ -138,10 +142,10 @@ class DoctorBot(Bot):
 # manual unit tests
 if __name__ == "__main__":
     # test PatientBot.get_chatcompletion_prompt() and DoctorBot.get_chatcompletion_prompt()
-    
-    patient_prompt = json.loads(Path("../../prompts/patient/debug.json").read_bytes())
     with open("../../experiments/configs/debug.yml") as f:
         args = yaml.safe_load(f)
+    
+    patient_prompt = json.loads(Path("../../prompts/patient/debug.json").read_bytes())
     
     patient_bot = PatientBot(
         prefix_instruction=patient_prompt["prefix_instruction"],
@@ -160,20 +164,24 @@ if __name__ == "__main__":
     question = "Do you have a headache?"
     response = patient_bot.respond(question)
     print(response)
+    print(patient_bot.dialogue.data)
 
-    # doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
-    # doctor_bot = DoctorBot(
-    #     prefix_instruction=doctor_prompt["prefix_instruction"],
-    #     shots=[
-    #         Shot(
-    #             context=Context(raw_text=shot["context"]),
-    #             dialogue=Dialogue(data=shot["dialogue"])
-    #         ) for shot in doctor_prompt["shots"]
-    #     ],
-    #     context=Context(raw_text=doctor_prompt["context"]),
-    #     dialogue=Dialogue(data=doctor_prompt["dialogue"]),
-    #     suffix_instruction=doctor_prompt["suffix_instruction"],
-    #     model=APIModel()
-    # )
-    # chatcompletion_prompt = doctor_bot.get_chatcompletion_prompt()
-    # print(json.dumps(chatcompletion_prompt, indent=4))
+    doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
+    doctor_bot = DoctorBot(
+        prefix_instruction=doctor_prompt["prefix_instruction"],
+        shots=[
+            Shot(
+                context=Context(raw_text=shot["context"]),
+                dialogue=Dialogue(data=shot["dialogue"])
+            ) for shot in doctor_prompt["shots"]
+        ],
+        context=Context(raw_text=doctor_prompt["context"]),
+        dialogue=Dialogue(data=doctor_prompt["dialogue"]),
+        suffix_instruction=doctor_prompt["suffix_instruction"],
+        model=OpenAIModel(config=args["doctor"]["model_config"])
+    )
+    
+    answer = "No. I don't have a fever."
+    response = doctor_bot.respond(answer)
+    print(response)
+    print(doctor_bot.dialogue.data)
