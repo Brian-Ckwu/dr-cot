@@ -1,11 +1,11 @@
 class Context(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, raw_text: str):
+        self.raw_text = raw_text
 
     def text(self) -> str:
         """Return the text of the context."""
-        raise NotImplementedError
+        return self.raw_text
 
 class PatientContext(Context):
 

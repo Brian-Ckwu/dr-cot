@@ -1,5 +1,3 @@
-from bot import Role
-
 class Dialogue(object):
     """The dialogue between the PatientBot and the DoctorBot.
     
@@ -22,7 +20,7 @@ class Dialogue(object):
     
     def add_utterance(
         self,
-        role: Role,
+        role, # Role
         utterance: str
     ):
         """Add an utterance to the dialogue."""

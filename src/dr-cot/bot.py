@@ -1,10 +1,12 @@
+import json
 from enum import Enum
 from typing import Any
+from pathlib import Path
 
 from shot import Shot
 from context import Context
 from dialogue import Dialogue
-from model import Model
+from model import Model, APIModel
 
 class Role(Enum):
     """The role of the bot in the dialogue."""
@@ -66,6 +68,12 @@ class Bot(object):
                 "name": d["role"],
                 "content": d["utterance"]
             })
+        # suffix_instruction if it exists
+        if self.suffix_instruction:
+            msgs.append({
+                "role": "system",
+                "content": self.suffix_instruction
+            })
         return msgs
 
 class PatientBot(Bot):
@@ -114,8 +122,38 @@ class DoctorBot(Bot):
 
 # manual unit tests
 if __name__ == "__main__":
-    # test Role
-    print("Role.PATIENT:", type(Role.PATIENT))
-    print("Role.PATIENT.value:", type(Role.PATIENT.value))
-    print("Role.DOCTOR:", Role.DOCTOR)
-    print("Role.DOCTOR.value:", Role.DOCTOR.value)
+    # test PatientBot.get_chatcompletion_prompt() and DoctorBot.get_chatcompletion_prompt()
+    
+    patient_prompt = json.loads(Path("../../prompts/patient/debug.json").read_bytes())
+    patient_bot = PatientBot(
+        prefix_instruction=patient_prompt["prefix_instruction"],
+        shots=[
+            Shot(
+                context=Context(raw_text=shot["context"]),
+                dialogue=Dialogue(data=shot["dialogue"])
+            ) for shot in patient_prompt["shots"]
+        ],
+        context=Context(raw_text=patient_prompt["context"]),
+        dialogue=Dialogue(data=patient_prompt["dialogue"]),
+        suffix_instruction=patient_prompt["suffix_instruction"],
+        model=APIModel()
+    )
+    chatcompletion_prompt = patient_bot.get_chatcompletion_prompt()
+    print(json.dumps(chatcompletion_prompt, indent=4))
+
+    doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
+    doctor_bot = DoctorBot(
+        prefix_instruction=doctor_prompt["prefix_instruction"],
+        shots=[
+            Shot(
+                context=Context(raw_text=shot["context"]),
+                dialogue=Dialogue(data=shot["dialogue"])
+            ) for shot in doctor_prompt["shots"]
+        ],
+        context=Context(raw_text=doctor_prompt["context"]),
+        dialogue=Dialogue(data=doctor_prompt["dialogue"]),
+        suffix_instruction=doctor_prompt["suffix_instruction"],
+        model=APIModel()
+    )
+    chatcompletion_prompt = doctor_bot.get_chatcompletion_prompt()
+    print(json.dumps(chatcompletion_prompt, indent=4))

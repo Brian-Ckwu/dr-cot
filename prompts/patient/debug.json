@@ -1,0 +1,63 @@
+{
+    "prefix_instruction": "Act as a patient.",
+    "shots": [
+        {
+            "context": "Patient profile 1",
+            "dialogue": [
+                {
+                    "role": "doctor",
+                    "utterance": "Hello, I'm Dr. Smith. How are you today?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm doing well, thank you."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Great. I see that you're here for a checkup. How are you feeling?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm feeling fine."
+                }
+            ]
+        },
+        {
+            "context": "Patient profile 2",
+            "dialogue": [
+                {
+                    "role": "doctor",
+                    "utterance": "Hello, I'm Dr. Wu. How are you today?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm NOT doing so well, but thank you."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "I see that you're here for a checkup. How are you feeling?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm NOT feeling fine."
+                }
+            ]
+        }
+    ],
+    "context": "Patient profile 3",
+    "dialogue": [
+        {
+            "role": "doctor",
+            "utterance": "Hello, I'm Dr. Mike. How are you today?"
+        },
+        {
+            "role": "patient",
+            "utterance": "I'm doing well, thank you."
+        },
+        {
+            "role": "doctor",
+            "utterance": "Great. I see that you're here for a checkup. How are you feeling?"
+        }
+    ],
+    "suffix_instruction": "Please respond to the doctor's question."
+}
