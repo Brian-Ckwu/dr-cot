@@ -87,6 +87,7 @@ class Bot(object):
                 prompt = self.get_chatcompletion_prompt()
             else:
                 prompt = self.get_completion_prompt()
+            print(json.dumps(prompt, indent=4)) # XXX
             response = self.model.generate(prompt)
         else:
             raise NotImplementedError
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     with open("../../experiments/configs/debug.yml") as f:
         args = yaml.safe_load(f)
     
-    patient_prompt = json.loads(Path("../../prompts/patient/debug.json").read_bytes())
+    patient_prompt = json.loads(Path("../../prompts/patient/standard.json").read_bytes())
     
     patient_bot = PatientBot(
         prefix_instruction=patient_prompt["prefix_instruction"],
@@ -161,27 +162,27 @@ if __name__ == "__main__":
         model=OpenAIModel(config=args["patient"]["model_config"])
     )
     
-    question = "Do you have a headache?"
+    question = "What's your occupation?"
     response = patient_bot.respond(question)
     print(response)
     print(patient_bot.dialogue.data)
 
-    doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
-    doctor_bot = DoctorBot(
-        prefix_instruction=doctor_prompt["prefix_instruction"],
-        shots=[
-            Shot(
-                context=Context(raw_text=shot["context"]),
-                dialogue=Dialogue(data=shot["dialogue"])
-            ) for shot in doctor_prompt["shots"]
-        ],
-        context=Context(raw_text=doctor_prompt["context"]),
-        dialogue=Dialogue(data=doctor_prompt["dialogue"]),
-        suffix_instruction=doctor_prompt["suffix_instruction"],
-        model=OpenAIModel(config=args["doctor"]["model_config"])
-    )
+    # doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
+    # doctor_bot = DoctorBot(
+    #     prefix_instruction=doctor_prompt["prefix_instruction"],
+    #     shots=[
+    #         Shot(
+    #             context=Context(raw_text=shot["context"]),
+    #             dialogue=Dialogue(data=shot["dialogue"])
+    #         ) for shot in doctor_prompt["shots"]
+    #     ],
+    #     context=Context(raw_text=doctor_prompt["context"]),
+    #     dialogue=Dialogue(data=doctor_prompt["dialogue"]),
+    #     suffix_instruction=doctor_prompt["suffix_instruction"],
+    #     model=OpenAIModel(config=args["doctor"]["model_config"])
+    # )
     
-    answer = "No. I don't have a fever."
-    response = doctor_bot.respond(answer)
-    print(response)
-    print(doctor_bot.dialogue.data)
+    # answer = "No. I don't have a fever."
+    # response = doctor_bot.respond(answer)
+    # print(response)
+    # print(doctor_bot.dialogue.data)
