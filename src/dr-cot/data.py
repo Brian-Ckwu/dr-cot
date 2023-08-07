@@ -25,7 +25,7 @@ class DDxDataset(object):
         df.PATHOLOGY = df.PATHOLOGY.apply(lambda dx: pathology_info[dx]['cond-name-eng'])
         df.DIFFERENTIAL_DIAGNOSIS = df.DIFFERENTIAL_DIAGNOSIS.apply(lambda dxs_probs: [[pathology_info[dx_prob[0]]['cond-name-eng'], dx_prob[1]] for dx_prob in dxs_probs])
         # 3. convert evidences to English ("INITIAL_EVIDENCE", "EVIDENCES")
-        df.INITIAL_EVIDENCE = df.INITIAL_EVIDENCE.apply(lambda ie: evidences_info[ie]["abbr_en"].lower())
+        df["INITIAL_EVIDENCE_ENG"] = df.INITIAL_EVIDENCE.apply(lambda ie: evidences_info[ie]["abbr_en"].lower())
         # EVIDENCES: currently only binary evidences are supported
         # TODO: M and C are not supported yet -> add a temporary field "EVIDENCES_UNCONVERTED"
         df["EVIDENCES_ENG"] = df.EVIDENCES.apply(self.convert_evidence_to_eng(evidences_info, "eng"))
@@ -129,4 +129,4 @@ if __name__ == "__main__":
     evidences_info_path = "../../ddxplus/our_evidences_to_qa_v2.json"
 
     dataset = DDxDataset(csv_path, pathology_info_path, evidences_info_path)
-    print(dataset.df.head())
+    print(dataset.df[["AGE", "INITIAL_EVIDENCE", "INITIAL_EVIDENCE_ENG", "EVIDENCES_ENG"]])
