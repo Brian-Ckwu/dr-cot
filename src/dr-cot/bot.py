@@ -87,7 +87,7 @@ class Bot(object):
                 prompt = self.get_chatcompletion_prompt()
             else:
                 prompt = self.get_completion_prompt()
-            print(json.dumps(prompt, indent=4)) # XXX
+            # print(json.dumps(prompt, indent=4)) # XXX
             response = self.model.generate(prompt)
         else:
             raise NotImplementedError
@@ -98,6 +98,7 @@ class Bot(object):
 
 class PatientBot(Bot):
     """The chat bot playing the patient role."""
+    context_delimiter = "```" # currently triple backticks
 
     def __init__(
         self,
@@ -117,6 +118,20 @@ class PatientBot(Bot):
             model
         )
         self.role = Role.PATIENT
+    
+    def reset(self, context: Context, dialogue: Dialogue = None) -> None:
+        self.set_context(context)
+        self.clear_dialogue()
+        if dialogue is not None:
+            self.dialogue = dialogue
+    
+    def set_context(self, context: Context) -> None:
+        """Set the context for the bot."""
+        self.context = context
+    
+    def clear_dialogue(self) -> None:
+        """Clear the dialogue for the bot."""
+        self.dialogue = Dialogue([]) # [] is necessary to create a new dialogue object
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
@@ -142,6 +157,17 @@ class DoctorBot(Bot):
 
 # manual unit tests
 if __name__ == "__main__":
+    from data import DDxDataset
+    # Load dataset
+    csv_path = "../../ddxplus/release_test_patients.csv"
+    pathology_info_path = "../../ddxplus/release_conditions.json"
+    evidences_info_path = "../../ddxplus/our_evidences_to_qa_v2.json"
+
+    dataset = DDxDataset(csv_path, pathology_info_path, evidences_info_path)
+    indices = [98595, 123464, 86477, 9209, 98151]
+    pats = dataset.df.iloc[indices]
+    print("Dataset loaded.")
+
     # test PatientBot.get_chatcompletion_prompt() and DoctorBot.get_chatcompletion_prompt()
     with open("../../experiments/configs/debug.yml") as f:
         args = yaml.safe_load(f)
@@ -162,10 +188,23 @@ if __name__ == "__main__":
         model=OpenAIModel(config=args["patient"]["model_config"])
     )
     
-    question = "What's your occupation?"
-    response = patient_bot.respond(question)
-    print(response)
-    print(patient_bot.dialogue.data)
+    question = "What's your sex and age?"
+    
+    from context import PatientContext
+    for _, pat in pats.iterrows():
+        print(f"Patient: {pat.AGE} yo {pat.SEX}")
+        patient_bot.reset(
+            context=PatientContext(
+                sex=pat.SEX,
+                age=pat.AGE,
+                initial_evidence=pat.INITIAL_EVIDENCE,
+                evidences=pat.EVIDENCES
+            )
+        )
+        response = patient_bot.respond(question)
+        print(response)
+        print(patient_bot.dialogue.data)
+        print(patient_bot.get_chatcompletion_prompt())
 
     # doctor_prompt = json.loads(Path("../../prompts/doctor/debug.json").read_bytes())
     # doctor_bot = DoctorBot(

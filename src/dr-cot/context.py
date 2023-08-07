@@ -17,6 +17,7 @@ class PatientContext(Context):
     release_conditions = json.loads((Path(__file__).parent.parent.parent / "ddxplus/release_conditions.json").read_bytes())
     evidence2desc = json.loads((Path(__file__).parent.parent.parent / "ddxplus/our_evidences_to_qa_v2.json").read_bytes())
     desc_field = "affirmative_en"
+    context_delimiter = "```"
     
     def __init__(
         self,
@@ -60,7 +61,7 @@ class PatientContext(Context):
                 item = self.release_evidences[key]["value_meaning"][value]["en"]
                 sents.append(f"* {item}")
         
-        return '\n'.join(sents)
+        return self.context_delimiter + '\n'.join(sents) + self.context_delimiter
         
     def _parse_evidences(self, evidences: list[str]) -> dict:
         """
