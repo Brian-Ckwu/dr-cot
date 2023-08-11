@@ -164,7 +164,7 @@ if __name__ == "__main__":
     evidences_info_path = "../../ddxplus/our_evidences_to_qa_v2.json"
 
     dataset = DDxDataset(csv_path, pathology_info_path, evidences_info_path)
-    indices = [98595, 123464, 86477, 9209, 98151]
+    indices = [98595] #, 123464, 86477, 9209, 98151]
     pats = dataset.df.iloc[indices]
     print("Dataset loaded.")
 

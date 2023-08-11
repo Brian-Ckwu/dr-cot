@@ -61,7 +61,7 @@ class PatientContext(Context):
                 item = self.release_evidences[key]["value_meaning"][value]["en"]
                 sents.append(f"* {item}")
         
-        return self.context_delimiter + '\n'.join(sents) + self.context_delimiter
+        return "patient profile: " + self.context_delimiter + '\n'.join(sents) + self.context_delimiter
         
     def _parse_evidences(self, evidences: list[str]) -> dict:
         """

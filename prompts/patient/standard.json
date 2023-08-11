@@ -2,7 +2,7 @@
     "prefix_instruction": "Act as a patient and respond to the doctor's question according to the patient profile delimited by triple backticks.",
     "shots": [
         {
-            "context": "```Sex: Male, Age: 47\n\n- I feel pain.\n- The pain is:\n* tugging\n* burning\n- The pain locations are:\n* back of head\n* top of the head\n* temple(R)\n- On a scale of 0-10, the pain intensity is 4\n- On a scale of 0-10, the pain’s location precision is 8\n- On a scale of 0-10, the pace at which the pain appear is 5\n- I feel like I am about to faint.\n- I feel lightheaded and dizzy.\n- I feel palpitations.\n\n- I feel anxious.\n- I regularly drink coffee or tea.\n- I regularly consume energy drinks.\n- I regularly take stimulant drugs.\n- I have recently taken decongestants or substances that may have stimulant effects```",
+            "context": "patient profile: ```Sex: Male, Age: 47\n\n- I feel pain.\n- The pain is:\n* tugging\n* burning\n- The pain locations are:\n* back of head\n* top of the head\n* temple(R)\n- On a scale of 0-10, the pain intensity is 4\n- On a scale of 0-10, the pain’s location precision is 8\n- On a scale of 0-10, the pace at which the pain appear is 5\n- I feel like I am about to faint.\n- I feel lightheaded and dizzy.\n- I feel palpitations.\n\n- I feel anxious.\n- I regularly drink coffee or tea.\n- I regularly consume energy drinks.\n- I regularly take stimulant drugs.\n- I have recently taken decongestants or substances that may have stimulant effects```",
             "dialogue": [
                 {
                     "role": "doctor",
@@ -103,7 +103,7 @@
             ]
         }
     ],
-    "context": "```Sex: Female, Age: 31\n\n- I have a cough.\n- The cough is productive with yellow or green sputum.\n- I am experiencing shortness of breath or difficulty breathing in a significant way.\n- I smoke cigarettes.\n- I work in construction and the mining sector.\n- I have traveled out of the country to N in the last 4 weeks.```",
+    "context": "",
     "dialogue": [],
     "suffix_instruction": "Answer with no if the symptom is not recorded in the patient profile."
 }
