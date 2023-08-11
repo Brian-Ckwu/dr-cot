@@ -93,6 +93,9 @@ class DDxDataset(object):
         # sort by mutual information
         mis = {k: v for k, v in sorted(mis.items(), key=lambda item: item[1], reverse=True)}
         return mis
+    
+    def get_all_diagnoses(self) -> List[str]:
+        return self.df.PATHOLOGY.unique().tolist()
 
     @staticmethod
     def calc_entropy(probs: np.ndarray) -> float: # calculate Shannon entropy using natural log
