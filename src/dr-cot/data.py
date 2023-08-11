@@ -36,16 +36,16 @@ class DDxDataset(object):
         return len(self.df)
     
     def sample_patients(self, ie: str, n: int, seed: int) -> pd.DataFrame:
-        df_ie = self.df[self.df.INITIAL_EVIDENCE == ie]
+        df_ie = self.df[self.df.INITIAL_EVIDENCE_ENG == ie]
         df_ie_top1 = df_ie[df_ie.DIFFERENTIAL_DIAGNOSIS.apply(lambda l: l[0][0]) == df_ie.PATHOLOGY]
         return df_ie_top1.sample(n=n, random_state=seed)
     
     def get_evidence_set_of_initial_evidence(self, ie: str, field: str) -> set:
         """field: 'EVIDENCES' or 'EVIDENCES_ENG' or 'EVIDENCES_UNCONVERTED'"""
-        return self.get_evidence_set(df=self.df[self.df.INITIAL_EVIDENCE == ie], evidence_field=field)
+        return self.get_evidence_set(df=self.df[self.df.INITIAL_EVIDENCE_ENG == ie], evidence_field=field)
     
     def get_differential_of_initial_evidence(self, ie: str) -> list:
-        return self.df[self.df.INITIAL_EVIDENCE == ie].PATHOLOGY.unique().tolist()
+        return self.df[self.df.INITIAL_EVIDENCE_ENG == ie].PATHOLOGY.unique().tolist()
     
     def get_ddx_distribution_from_evidence(self, positives: List[str], negatives: List[str]) -> Dict[str, float]:
         ddx_count = self.get_subdf_from_evidence(positives, negatives).groupby("PATHOLOGY").size().sort_values(ascending=False)
