@@ -23,7 +23,8 @@ class Experiment(object):
         print(f"Sampled {len(self.pats)} patients of initial evidence {config.initial_evidence}.")
         self.patient_bot = self.initialize_patient()
         self.doctor_bot = self.initialize_doctor(possible_diagnoses=dataset.get_all_diagnoses())
-    
+        self.log_bots_info()
+
     def initialize_patient(self) -> PatientBot:
         patient_config = json.loads(Path(self.config.patient.config_path).read_bytes())
         return PatientBot(
@@ -63,8 +64,20 @@ class Experiment(object):
             initial_evidence=pat.INITIAL_EVIDENCE,
             evidences=pat.EVIDENCES
         )
+
+    def log_bots_info(self) -> None:
+        (self.config.log_path / "patient_state.json").write_text(json.dumps(self.patient_bot.state, indent=4))
+        (self.config.log_path / "doctor_state.json").write_text(json.dumps(self.doctor_bot.state, indent=4))
+        self.config.patient_log_path = self.config.log_path / "patient_dialogues"
+        self.config.doctor_log_path = self.config.log_path / "doctor_dialogues"
+        self.config.patient_log_path.mkdir(parents=True, exist_ok=True)
+        self.config.doctor_log_path.mkdir(parents=True, exist_ok=True)
     
-    def conduct_history_taking(self, doctor_bot: DoctorBot, patient_bot: PatientBot) -> str:
+    def save_dialogues(self, index: int) -> None:
+        self.patient_bot.dialogue.save_dialogue(save_path=self.config.patient_log_path / f"{index}.json", is_doctor=False)
+        self.doctor_bot.dialogue.save_dialogue(save_path=self.config.doctor_log_path / f"{index}.json", is_doctor=True)
+
+    def conduct_history_taking(self, doctor_bot: DoctorBot, patient_bot: PatientBot, dialogue_index: int) -> str:
         """Conduct history taking with the given doctor and patient bots."""
         q = doctor_bot.greeting()
         a = patient_bot.inform_initial_evidence(utterance=q)
@@ -74,16 +87,18 @@ class Experiment(object):
             if self.debug:
                 print(f"Doctor: {q}")
                 print(f"Patient: {a}")
+                self.save_dialogues(index=dialogue_index)
         dx = doctor_bot.make_diagnosis(utterance=a)
+        self.save_dialogues(index=dialogue_index)
         return dx
 
     def run(self) -> None:
         """Run the experiment with the given configuration."""
-        for _, pat in self.pats.iterrows():
+        for i, pat in self.pats.iterrows():
             patient_context = self.get_new_patient_context(pat)
             self.patient_bot.reset(context=patient_context)
             self.doctor_bot.clear_dialogue()
-            dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot)
+            dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
             print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
 
 def parse_args() -> Namespace:

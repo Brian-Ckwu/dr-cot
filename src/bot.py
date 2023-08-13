@@ -1,19 +1,12 @@
 import json
 import yaml
-from enum import Enum
 from typing import Any
 from pathlib import Path
 
 from .shot import Shot
 from .context import Context
-from .dialogue import Dialogue
+from .dialogue import Dialogue, Role
 from .model import Model, OpenAIModel
-
-class Role(Enum):
-    """The role of the bot in the dialogue."""
-
-    PATIENT = "patient"
-    DOCTOR = "doctor"
 
 class Bot(object):
     """The chat bot playing a given role."""
@@ -77,15 +70,19 @@ class Bot(object):
             })
         return msgs
     
+    def get_prompt(self) -> Any:
+        if self.model.config["model"] in self.model.chatcompletion_models:
+            prompt = self.get_chatcompletion_prompt()
+        else:
+            prompt = self.get_completion_prompt()
+        return prompt
+    
     def respond(self, utterance: str) -> str:
         """Respond to the counterpart chatbot's utterance."""
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
         if isinstance(self.model, OpenAIModel):
-            if self.model.config["model"] in self.model.chatcompletion_models:
-                prompt = self.get_chatcompletion_prompt()
-            else:
-                prompt = self.get_completion_prompt()
+            prompt = self.get_prompt()
             # print(json.dumps(prompt, indent=4)) # XXX
             response = self.model.generate(prompt)
         else:
@@ -139,6 +136,24 @@ class PatientBot(Bot):
         response = self.context.initial_evidence
         self.dialogue.add_utterance(self.role, response)
         return response
+    
+    @property
+    def state(self) -> dict[str, Any]:
+        """Get the state of the bot."""
+        return {
+            "prefix_instruction": self.prefix_instruction,
+            "shots": [
+                {
+                    "context": shot.context.text(),
+                    "dialogue": shot.dialogue.data
+                } for shot in self.shots
+            ],
+            "context": self.context.text(),
+            "dialogue": self.dialogue.data,
+            "suffix_instruction": self.suffix_instruction,
+            "model": self.model.config,
+            "prompt": self.get_prompt()
+        }
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
@@ -199,6 +214,7 @@ class DoctorBot(Bot):
         try:
             d = json.loads(response)
         except:
+            print(f"===== Error response =====\n{response}\n")
             raise ValueError("Response is not a valid JSON string.")
         return d["question"]
 
@@ -210,6 +226,24 @@ class DoctorBot(Bot):
         except:
             raise ValueError("Response is not a valid JSON string.")
         return d["most likely diagnosis"]
+
+    @property
+    def state(self) -> dict[str, Any]:
+        """Get the state of the bot."""
+        return {
+            "prefix_instruction": self.prefix_instruction,
+            "shots": [
+                {
+                    "context": shot.context.text(),
+                    "dialogue": shot.dialogue.data
+                } for shot in self.shots
+            ],
+            "context": self.context.text(),
+            "dialogue": self.dialogue.data,
+            "suffix_instructions": self.suffix_instructions,
+            "model": self.model.config,
+            "prompt": self.get_prompt()
+        }
 
 # manual unit tests
 if __name__ == "__main__":
