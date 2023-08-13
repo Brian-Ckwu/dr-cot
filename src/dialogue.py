@@ -1,5 +1,4 @@
 import json
-from typing import Union
 
 class Dialogue(object):
     """The dialogue between the PatientBot and the DoctorBot.
@@ -38,3 +37,8 @@ class Dialogue(object):
         for turn in data:
             if isinstance(turn["utterance"], dict):
                 turn["utterance"] = json.dumps(turn["utterance"])
+
+    def log(self) -> None:
+        """Print the dialogue to stdout."""
+        for turn in self.data:
+            print(turn["role"] + ": " + turn["utterance"])
