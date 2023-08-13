@@ -1,6 +1,7 @@
 import os
 import yaml
-from typing import Any
+from typing import Any, Union
+from argparse import Namespace
 from abc import ABC, abstractmethod
 
 import openai
@@ -23,9 +24,11 @@ class OpenAIModel(Model):
 
     def __init__(
         self,
-        config: dict,
+        config: Union[dict, Namespace],
     ):
         openai.api_key = os.getenv("OPENAI_API_KEY")
+        if isinstance(config, Namespace):
+            config = vars(config)
         self.config = config
     
     def generate(self, prompt: Any) -> str:

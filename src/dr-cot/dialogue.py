@@ -1,3 +1,6 @@
+import json
+from typing import Union
+
 class Dialogue(object):
     """The dialogue between the PatientBot and the DoctorBot.
     
@@ -12,6 +15,7 @@ class Dialogue(object):
     """
 
     def __init__(self, data: list[dict[str, str]] = []):
+        self.parse_dialogue(data)
         self.data = data
     
     def __len__(self) -> int:
@@ -28,3 +32,9 @@ class Dialogue(object):
             "role": role.value,
             "utterance": utterance
         })
+    
+    def parse_dialogue(self, data: list[dict[str, str]]) -> None:
+        """Convert utterances which are dicts to strings in-space."""
+        for turn in data:
+            if isinstance(turn["utterance"], dict):
+                turn["utterance"] = json.dumps(turn["utterance"])

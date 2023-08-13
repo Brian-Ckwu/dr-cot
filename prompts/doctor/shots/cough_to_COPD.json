@@ -1,0 +1,102 @@
+{
+    "context": "<Possible diagnoses>",
+    "dialogue": [
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "greeting",
+                "question": "How may I help you today?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "I have a cough."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough"],
+                "negative clinical findings": [],
+                "ranked differential diagnosis": ["Viral pharyngitis", "URTI", "Bronchospasm / acute asthma exacerbation", "Allergic sinusitis", "Tuberculosis", "Bronchiectasis", "Chronic rhinosinusitis", "Acute COPD exacerbation / infection", "Acute laryngitis", "Bronchitis", "GERD", "Acute otitis media", "Influenza", "Acute rhinosinusitis", "Pneumonia"],
+                "the clinical finding to ask about": "dyspnea",
+                "question": "Do you have difficulty breathing?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have diffulculty breathing."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "dyspnea"],
+                "negative clinical findings": [],
+                "ranked differential diagnosis": ["Bronchospasm / acute asthma exacerbation", "Bronchiectasis", "Acute COPD exacerbation / infection", "Tuberculosis", "Bronchitis", "Pulmonary neoplasm", "Pneumonia", "Spontaneous rib fracture", "Ebola", "Bronchiolitis"],
+                "the clinical finding to ask about": "fever",
+                "question": "Do you have fever?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "No, I do not have fever."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "dyspnea"],
+                "negative clinical findings": ["fever"],
+                "ranked differential diagnosis": ["Bronchospasm / acute asthma exacerbation", "Bronchiectasis", "Acute COPD exacerbation / infection", "Pulmonary neoplasm", "Tuberculosis", "Bronchitis", "Pneumonia", "Spontaneous rib fracture"],
+                "the clinical finding to ask about": "wheezing",
+                "question": "Do you wheeze when you breathe?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have noticed a wheezing sound when I exhale."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "dyspnea", "wheezing"],
+                "negative clinical findings": ["fever"],
+                "ranked differential diagnosis": ["Bronchospasm / acute asthma exacerbation", "Acute COPD exacerbation / infection", "Bronchitis"],
+                "the clinical finding to ask about": "COPD history",
+                "question": "Do you have past history of COPD?"                 
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have past history of COPD."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "dyspnea", "wheezing", "COPD history"],
+                "negative clinical findings": ["fever"],
+                "ranked differential diagnosis": ["Acute COPD exacerbation / infection", "Bronchitis", "Bronchospasm / acute asthma exacerbation"],
+                "the clinical finding to ask about": "allergy history",
+                "question": "Do you have past history of allergy or asthma?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "No."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "make_diagnosis",
+                "positive clinical findings": ["cough", "dyspnea", "wheezing", "COPD history"],
+                "negative clinical findings": ["shortness of breath", "allergy history"],
+                "ranked differential diagnosis": ["Acute COPD exacerbation / infection", "Bronchitis"],
+                "rationale": "Since the patient has symptoms of cough and wheezing, has past history of COPD, and does not have allergy history, the most likely diagnosis is Acute COPD exacerbation / infection.",
+                "most likely diagnosis": "Acute COPD exacerbation / infection"
+            }
+        }
+    ]
+}

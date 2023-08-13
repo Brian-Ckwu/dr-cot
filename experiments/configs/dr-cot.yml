@@ -1,0 +1,28 @@
+name: drcot-1shot-cough
+log_path: "./experiments"
+seed: 1126
+
+data:
+  csv_path: "./ddxplus/release_test_patients.csv"
+  pathology_info_path: "./ddxplus/release_conditions.json"
+  evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
+sample_size: 10
+initial_evidence: "cough"
+
+patient:
+  config_path: "./prompts/patient/standard.json"
+  model_config:
+    model: "gpt-3.5-turbo"
+    temperature: 0
+    max_tokens: 128
+
+doctor:
+  prompt_mode: "drcot"
+  shots_paths:
+    - "./prompts/doctor/shots/cough_to_influenza.json"
+    - "./prompts/doctor/shots/cough_to_COPD.json"
+  ask_turns: 8
+  model_config:
+    model: "gpt-3.5-turbo"
+    temperature: 0
+    max_tokens: 512

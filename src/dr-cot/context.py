@@ -18,6 +18,7 @@ class PatientContext(Context):
     evidence2desc = json.loads((Path(__file__).parent.parent.parent / "ddxplus/our_evidences_to_qa_v2.json").read_bytes())
     desc_field = "affirmative_en"
     context_delimiter = "```"
+    context_prefix = "patient profile: "
     
     def __init__(
         self,
@@ -61,7 +62,7 @@ class PatientContext(Context):
                 item = self.release_evidences[key]["value_meaning"][value]["en"]
                 sents.append(f"* {item}")
         
-        return "patient profile: " + self.context_delimiter + '\n'.join(sents) + self.context_delimiter
+        return self.context_prefix + self.context_delimiter + '\n'.join(sents) + self.context_delimiter
         
     def _parse_evidences(self, evidences: list[str]) -> dict:
         """
@@ -118,9 +119,15 @@ class PatientContext(Context):
         return f"I am a {self._age}-year-old {'male' if self._sex == 'M' else 'female'}."
 
 class DoctorContext(Context):
+    context_prefix = "possible diagnoses: "
+    context_delimiter = "```"
+    separator = "; "
 
-    def __init__(self):
-        pass
+    def __init__(self, possible_diagnoses: list[str]):
+        self._possible_diagnoses = possible_diagnoses
+    
+    def text(self) -> str:
+        return self.context_prefix + self.context_delimiter + self.separator.join(self._possible_diagnoses) + self.context_delimiter
 
 if __name__ == "__main__":
     from data import DDxDataset

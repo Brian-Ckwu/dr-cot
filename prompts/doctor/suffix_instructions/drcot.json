@@ -1,0 +1,4 @@
+{
+    "ask_finding": "Use the following step-by-step instructions to take important medical history from the patient.\nStep 1 - Review the patient's positive and negative clinical findings.\nStep 2 - Based on the positive and negative clinical findings, formulate ranked differential diagnosis.\nStep 3 - Think about the most important clinical finding to ask about to narrow down the differential diagnosis.\nStep 4 - Ask the question about the clinical finding.\nStep 5 - Output the above information in the JSON format.",
+    "make_diagnosis": "Use the following step-by-step instructions to make the final diagnosis.\nStep 1 - Review the patient's positive and negative clinical findings.\nStep 2 - Based on the positive and negative clinical findings, formulate ranked differential diagnosis.\nStep 3 - Think about the rationale for the most likely diagnosis.\nStep 4 - Determine the most likely diagnosis.\nStep 5 - Output the above information in the JSON format."
+}

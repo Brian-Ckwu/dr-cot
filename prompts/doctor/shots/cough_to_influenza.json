@@ -1,0 +1,102 @@
+{
+    "context": "<Possible diagnoses>",
+    "dialogue": [
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "greeting",
+                "question": "How may I help you today?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "I have a cough."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough"],
+                "negative clinical findings": [],
+                "ranked differential diagnosis": ["URTI", "Viral pharyngitis", "Bronchitis", "Influenza", "Pneumonia", "GERD", "Chronic rhinosinusitis", "Allergic sinusitis", "Tuberculosis", "Bronchospasm / acute asthma exacerbation", "Acute laryngitis", "Acute COPD exacerbation / infection", "Acute otitis media", "Bronchiectasis", "Acute rhinosinusitis", "Pulmonary neoplasm", "Pancreatic neoplasm", "Spontaneous rib fracture", "Ebola", "Bronchiolitis"],
+                "the clinical finding to ask about": "fever",
+                "question": "Do you have a fever?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have a fever."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "fever"],
+                "negative clinical findings": [],
+                "ranked differential diagnosis": ["URTI", "Viral pharyngitis", "Influenza", "Pneumonia", "Bronchitis", "Tuberculosis", "Acute otitis media", "Acute laryngitis", "Acute rhinosinusitis", "Ebola", "Bronchiolitis"],
+                "the clinical finding to ask about": "shortness of breath",
+                "question": "Did you have difficulty breathing?"                 
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "No, I did not have difficulty breathing."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "fever"],
+                "negative clinical findings": ["shortness of breath"],
+                "ranked differential diagnosis": ["URTI", "Viral pharyngitis", "Influenza", "Acute otitis media", "Acute laryngitis", "Bronchitis", "Pneumonia", "Tuberculosis", "Acute rhinosinusitis", "Ebola"],
+                "the clinical finding to ask about": "sore throat",
+                "question": "Do you have a sore throat?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have a sore throat."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "fever", "sore throat"],
+                "negative clinical findings": ["shortness of breath"],
+                "ranked differential diagnosis": ["URTI", "Influenza", "Bronchitis", "Ebola"],
+                "the clinical finding to ask about": "diffuse muscle pain",
+                "question": "Do you have diffuse (widespread) muscle pain or soreness?"                 
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I have diffuse muscle soreness."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "ask_finding",
+                "positive clinical findings": ["cough", "fever", "sore throat", "diffuse muscle pain"],
+                "negative clinical findings": ["shortness of breath"],
+                "ranked differential diagnosis": ["URTI", "Influenza", "Ebola"],
+                "the clinical finding to ask about": "extreme fatigue",
+                "question": "Do you feel extremely tired or fatigued?"
+            }
+        },
+        {
+            "role": "patient",
+            "utterance": "Yes, I feel extremely tired."
+        },
+        {
+            "role": "doctor",
+            "utterance": {
+                "action": "make_diagnosis",
+                "positive clinical findings": ["cough", "fever", "sore throat", "diffuse muscle pain", "extreme fatigue"],
+                "negative clinical findings": ["shortness of breath"],
+                "ranked differential diagnosis": ["Influenza"],
+                "rationale": "The patient has symptoms of upper respiratory tract infection, as well as myalgia and extreme fatigue. Therefore, the most likely diagnosis is Influenza.",
+                "most likely diagnosis": "Influenza"
+            }
+        }
+    ]
+}

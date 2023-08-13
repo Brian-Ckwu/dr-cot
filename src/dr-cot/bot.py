@@ -79,8 +79,7 @@ class Bot(object):
     
     def respond(self, utterance: str) -> str:
         """Respond to the counterpart chatbot's utterance."""
-        role = Role.PATIENT if self.role == Role.DOCTOR else Role.DOCTOR
-        self.dialogue.add_utterance(role, utterance)
+        self.dialogue.add_utterance(self.opposite_role, utterance)
 
         if isinstance(self.model, OpenAIModel):
             if self.model.config["model"] in self.model.chatcompletion_models:
@@ -95,6 +94,20 @@ class Bot(object):
         # TODO: May need additional parsing here to separate inner monologue from actual response
         self.dialogue.add_utterance(self.role, response)
         return response
+    
+    def reset(self, context: Context, dialogue: Dialogue = None) -> None:
+        self.set_context(context)
+        self.clear_dialogue()
+        if dialogue is not None:
+            self.dialogue = dialogue
+    
+    def set_context(self, context: Context) -> None:
+        """Set the context for the bot."""
+        self.context = context
+    
+    def clear_dialogue(self) -> None:
+        """Clear the dialogue for the bot."""
+        self.dialogue = Dialogue([]) # [] is necessary to create a new dialogue object
 
 class PatientBot(Bot):
     """The chat bot playing the patient role."""
@@ -118,23 +131,18 @@ class PatientBot(Bot):
             model
         )
         self.role = Role.PATIENT
-    
-    def reset(self, context: Context, dialogue: Dialogue = None) -> None:
-        self.set_context(context)
-        self.clear_dialogue()
-        if dialogue is not None:
-            self.dialogue = dialogue
-    
-    def set_context(self, context: Context) -> None:
-        """Set the context for the bot."""
-        self.context = context
-    
-    def clear_dialogue(self) -> None:
-        """Clear the dialogue for the bot."""
-        self.dialogue = Dialogue([]) # [] is necessary to create a new dialogue object
+        self.opposite_role = Role.DOCTOR
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
+    greeting_msg = json.dumps({
+        "action": "greeting",
+        "question": "How may I help you today?"
+    })
+    ask_basic_info_msg = json.dumps({
+        "action": "ask_basic_info",
+        "question": "What's your sex and age?"
+    })
 
     def __init__(
         self,
@@ -143,6 +151,7 @@ class DoctorBot(Bot):
         context: Context,
         dialogue: Dialogue,
         suffix_instruction: str,
+        suffix_instructions: dict[str, str], # the doctor has different suffix instructions fr "ask_finding" and "make_diagnosis"
         model: Model
     ):
         super().__init__(
@@ -154,6 +163,46 @@ class DoctorBot(Bot):
             model
         )
         self.role = Role.DOCTOR
+        self.opposite_role = Role.PATIENT
+        self.suffix_instructions = suffix_instructions
+    
+    def set_suffix_instruction(self, suffix_instruction: str) -> None:
+        """Set the suffix instruction for the bot."""
+        self.suffix_instruction = suffix_instruction
+    
+    def greeting(self, utterance: str = "") -> str:
+        if utterance:
+            self.dialogue.add_utterance(self.opposite_role, utterance)
+        self.dialogue.add_utterance(self.role, self.greeting_msg)
+        d = json.loads(self.greeting_msg)
+        return d["question"]
+    
+    def ask_basic_info(self, utterance: str = "") -> str:
+        if utterance:
+            self.dialogue.add_utterance(self.opposite_role, utterance)
+        else:
+            raise ValueError("Utterance is empty.")
+        self.dialogue.add_utterance(self.role, self.ask_basic_info_msg)
+        d = json.loads(self.ask_basic_info_msg)
+        return d["question"]
+    
+    def ask_finding(self, utterance: str) -> str:
+        self.set_suffix_instruction(self.suffix_instructions["ask_finding"])
+        response = self.respond(utterance)
+        try:
+            d = json.loads(response)
+        except:
+            raise ValueError("Response is not a valid JSON string.")
+        return d["question"]
+
+    def make_diagnosis(self, utterance: str) -> str:
+        self.set_suffix_instruction(self.suffix_instructions["make_diagnosis"])
+        response = self.respond(utterance)
+        try:
+            d = json.loads(response)
+        except:
+            raise ValueError("Response is not a valid JSON string.")
+        return d["most likely diagnosis"]
 
 # manual unit tests
 if __name__ == "__main__":
