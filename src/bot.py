@@ -4,10 +4,10 @@ from enum import Enum
 from typing import Any
 from pathlib import Path
 
-from shot import Shot
-from context import Context
-from dialogue import Dialogue
-from model import Model, OpenAIModel
+from .shot import Shot
+from .context import Context
+from .dialogue import Dialogue
+from .model import Model, OpenAIModel
 
 class Role(Enum):
     """The role of the bot in the dialogue."""
