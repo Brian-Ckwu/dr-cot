@@ -132,6 +132,13 @@ class PatientBot(Bot):
         )
         self.role = Role.PATIENT
         self.opposite_role = Role.DOCTOR
+    
+    def inform_initial_evidence(self, utterance: str) -> str:
+        """Inform the initial evidence to the doctor."""
+        self.dialogue.add_utterance(self.opposite_role, utterance)
+        response = self.context.initial_evidence
+        self.dialogue.add_utterance(self.role, response)
+        return response
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
