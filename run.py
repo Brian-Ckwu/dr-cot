@@ -54,7 +54,8 @@ class Experiment(object):
             dialogue=Dialogue(data=[]),
             suffix_instruction="",
             suffix_instructions=json.loads((Path("./prompts/doctor/suffix_instructions") / f"{config.doctor.prompt_mode}.json").read_bytes()),
-            model=OpenAIModel(config=config.doctor.model_config)
+            model=OpenAIModel(config=config.doctor.model_config),
+            max_ddx=self.config.doctor.max_ddx
         )
 
     def get_new_patient_context(self, pat: pd.Series) -> PatientContext:

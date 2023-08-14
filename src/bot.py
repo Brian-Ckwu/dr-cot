@@ -174,7 +174,8 @@ class DoctorBot(Bot):
         dialogue: Dialogue,
         suffix_instruction: str,
         suffix_instructions: dict[str, str], # the doctor has different suffix instructions fr "ask_finding" and "make_diagnosis"
-        model: Model
+        model: Model,
+        max_ddx: int = int(1e8)
     ):
         super().__init__(
             prefix_instruction,
@@ -187,6 +188,17 @@ class DoctorBot(Bot):
         self.role = Role.DOCTOR
         self.opposite_role = Role.PATIENT
         self.suffix_instructions = suffix_instructions
+        self.max_ddx = max_ddx
+        self.set_max_ddx()
+    
+    def set_max_ddx(self) -> None:
+        """Set the maximum number of differential diagnoses."""
+        for shot in self.shots:
+            shot.dialogue.reverse_parse_dialogue()
+            for turn in shot.dialogue.data:
+                if turn["role"] == self.role.value and isinstance(turn["utterance"], dict) and "ranked differential diagnosis" in turn["utterance"]:
+                    turn["utterance"]["ranked differential diagnosis"] = turn["utterance"]["ranked differential diagnosis"][:self.max_ddx]
+            shot.dialogue.parse_dialogue()
     
     def set_suffix_instruction(self, suffix_instruction: str) -> None:
         """Set the suffix instruction for the bot."""
