@@ -75,8 +75,8 @@ class Experiment(object):
         self.config.doctor_log_path.mkdir(parents=True, exist_ok=True)
     
     def save_dialogues(self, index: int) -> None:
-        self.patient_bot.dialogue.save_dialogue(save_path=self.config.patient_log_path / f"{index}.json", is_doctor=False)
-        self.doctor_bot.dialogue.save_dialogue(save_path=self.config.doctor_log_path / f"{index}.json", is_doctor=True)
+        self.patient_bot.dialogue.save_dialogue(save_path=self.config.patient_log_path / f"{index}.json", is_json=False)
+        self.doctor_bot.dialogue.save_dialogue(save_path=self.config.doctor_log_path / f"{index}.json", is_json=(self.config.doctor.prompt_format == "json"))
 
     def conduct_history_taking(self, doctor_bot: DoctorBot, patient_bot: PatientBot, dialogue_index: int) -> str:
         """Conduct history taking with the given doctor and patient bots."""
@@ -97,6 +97,7 @@ class Experiment(object):
         """Run the experiment with the given configuration."""
         for i, pat in self.pats.iterrows():
             patient_context = self.get_new_patient_context(pat)
+            # TODO: log patient profile
             self.patient_bot.reset(context=patient_context)
             self.doctor_bot.clear_dialogue()
             dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)

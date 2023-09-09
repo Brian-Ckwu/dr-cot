@@ -41,13 +41,13 @@ class Dialogue(object):
         })
     
     def parse_dialogue(self) -> None:
-        """Convert utterances which are dicts to strings in-space."""
+        """Convert utterances which are dicts to strings in-place."""
         for turn in self.data:
             if isinstance(turn["utterance"], dict):
                 turn["utterance"] = json.dumps(turn["utterance"])
     
     def reverse_parse_dialogue(self) -> None:
-        """Convert utterances which are strings to dicts in-space."""
+        """Convert utterances which are strings to dicts in-place."""
         for turn in self.data:
             if turn["role"] == Role.DOCTOR.value and isinstance(turn["utterance"], str):
                 try:
@@ -61,10 +61,10 @@ class Dialogue(object):
         for turn in self.data:
             print(turn["role"] + ": " + turn["utterance"])
 
-    def save_dialogue(self, save_path: Path, is_doctor: bool) -> None:
-        if is_doctor:
+    def save_dialogue(self, save_path: Path, is_json: bool) -> None:
+        if is_json:
             self.reverse_parse_dialogue()
         save_path.write_text(json.dumps(self.data, indent=4))
         # reset dialogue state
-        if is_doctor:
+        if is_json:
             self.parse_dialogue()
