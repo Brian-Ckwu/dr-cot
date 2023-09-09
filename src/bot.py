@@ -1,5 +1,6 @@
 import json
 import yaml
+from enum import Enum
 from typing import Any
 from pathlib import Path
 
@@ -7,6 +8,14 @@ from .shot import Shot
 from .context import Context
 from .dialogue import Dialogue, Role
 from .model import Model, OpenAIModel
+
+class PromptFormat(Enum):
+    RAW_TEXT = "raw_text"
+    JSON = "json"
+
+class PromptMode(Enum):
+    STANDARD = "standard"
+    DRCoT = "drcot"
 
 class Bot(object):
     """The chat bot playing a given role."""
@@ -175,7 +184,8 @@ class DoctorBot(Bot):
         suffix_instruction: str,
         suffix_instructions: dict[str, str], # the doctor has different suffix instructions fr "ask_finding" and "make_diagnosis"
         model: Model,
-        max_ddx: int = int(1e8)
+        max_ddx: int = int(1e8),
+        prompt_format: str = PromptFormat.RAW_TEXT.value,
     ):
         super().__init__(
             prefix_instruction,
@@ -190,6 +200,9 @@ class DoctorBot(Bot):
         self.suffix_instructions = suffix_instructions
         self.max_ddx = max_ddx
         self.set_max_ddx()
+        if prompt_format not in [p.value for p in PromptFormat]:
+            raise ValueError(f"Invalid prompt format: {prompt_format}")
+        self.prompt_format = prompt_format
     
     def set_max_ddx(self) -> None:
         """Set the maximum number of differential diagnoses."""
