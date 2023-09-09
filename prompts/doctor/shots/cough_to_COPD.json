@@ -92,7 +92,7 @@
             "utterance": {
                 "action": "make_diagnosis",
                 "positive clinical findings": ["cough", "dyspnea", "wheezing", "COPD history"],
-                "negative clinical findings": ["shortness of breath", "allergy history"],
+                "negative clinical findings": ["fever", "allergy", "asthma"],
                 "ranked differential diagnosis": ["Acute COPD exacerbation / infection", "Bronchitis"],
                 "rationale": "Since the patient has symptoms of cough and wheezing, has past history of COPD, and does not have allergy history, the most likely diagnosis is Acute COPD exacerbation / infection.",
                 "most likely diagnosis": "Acute COPD exacerbation / infection"
