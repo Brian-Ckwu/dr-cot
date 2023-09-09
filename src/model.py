@@ -1,8 +1,10 @@
 import os
+import time
 import yaml
 from typing import Any, Union
 from argparse import Namespace
 from abc import ABC, abstractmethod
+from colorama import Fore, Style
 
 import openai
 
@@ -40,6 +42,44 @@ class OpenAIModel(Model):
         else:
             raise ValueError(f"Invalid model: {self.config['model']}")
     
+    def retry_with_exponential_backoff(
+        func,
+        initial_delay: float = 1,
+        exponential_base: float = 2,
+        max_retries: int = 5,
+        errors: tuple = (openai.error.RateLimitError, openai.error.ServiceUnavailableError, openai.error.APIError),
+    ):
+        """Retry a function with exponential backoff."""
+    
+        def wrapper(*args, **kwargs):
+            # Initialize variables
+            num_retries = 0
+            delay = initial_delay
+            # Loop until a successful response or max_retries is hit or an exception is raised
+            while True:
+                try:
+                    return func(*args, **kwargs)
+                # Retry on specific errors
+                except errors as e:
+                    # Increment retries
+                    num_retries += 1
+                    # Check if max retries has been reached
+                    if num_retries > max_retries:
+                        raise Exception(
+                            Fore.RED + f"Maximum number of retries ({max_retries}) exceeded." + Style.RESET_ALL
+                        )
+                    # Increment the delay
+                    delay *= exponential_base
+                    # Sleep for the delay
+                    print(Fore.YELLOW + f"Error encountered. Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
+                    time.sleep(delay)
+                # Raise exceptions for any errors not specified
+                except Exception as e:
+                    raise e
+    
+        return wrapper
+
+    @retry_with_exponential_backoff
     def chatcompletion(self, prompt: list[dict[str, str]]) -> str:
         """POST to the https://api.openai.com/v1/chat/completions endpoint."""
         completion = openai.ChatCompletion.create(
@@ -48,6 +88,7 @@ class OpenAIModel(Model):
         )
         return completion.choices[0].message.content
 
+    @retry_with_exponential_backoff
     def completion(self, prompt: str) -> str:
         """POST to the https://api.openai.com/v1/completions endpoint."""
         completion = openai.Completion.create(
@@ -55,6 +96,7 @@ class OpenAIModel(Model):
             **self.config
         )
         return completion.choices[0].text
+
 
 class LocalModel(Model):
     """A model that uses a local model (e.g., LLaMA) to generate a response to a given prompt."""
