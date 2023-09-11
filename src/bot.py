@@ -17,6 +17,20 @@ class PromptMode(Enum):
     STANDARD = "standard"
     DRCoT = "drcot"
 
+class Action(Enum):
+    GREETING = "greeting"
+    ASK_FINDING = "ask_finding"
+    MAKE_DIAGNOSIS = "make_diagnosis"
+
+class ReasoningStep(Enum):
+    POS_FINDINGS = "positive clinical findings"
+    NEG_FINDINGS = "negative clinical findings"
+    RANKED_DDX = "ranked differential diagnosis"
+    ASK_FINDING = "the clinical finding to ask about"
+    QUESTION = "question"
+    DX_RATIONALE = "rationale"
+    FINAL_DIAGNOSIS = "most likely diagnosis"
+
 class Bot(object):
     """The chat bot playing a given role."""
 
@@ -43,41 +57,7 @@ class Bot(object):
 
     def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
         """Get the chatcompletion prompt for the bot."""
-        if self.role is None:
-            raise ValueError("Bot role is None.")
-        msgs = []
-        for shot in self.shots:
-            # system message: prefix_instruction + shot_context_text
-            msgs.append({
-                "role": "system",
-                "content": self.prefix_instruction + '\n' + shot.context.text()
-            })
-            # dialogue
-            for d in shot.dialogue.data:
-                msgs.append({
-                    "role": "system",
-                    "name": "example_" + d["role"], # help clarify that this is an example
-                    "content": d["utterance"]
-                })
-        # current system message: prefix_instruction + context_text
-        msgs.append({
-            "role": "system",
-            "content": self.prefix_instruction + '\n' + self.context.text()
-        })
-        # current diaglogue
-        for d in self.dialogue.data:
-            msgs.append({
-                "role": "assistant" if d["role"] == self.role.value else "user",
-                "name": d["role"],
-                "content": d["utterance"]
-            })
-        # suffix_instruction if it exists
-        if self.suffix_instruction:
-            msgs.append({
-                "role": "system",
-                "content": self.suffix_instruction
-            })
-        return msgs
+        raise NotImplementedError
     
     def get_prompt(self) -> Any:
         if self.model.config["model"] in self.model.chatcompletion_models:
@@ -138,7 +118,44 @@ class PatientBot(Bot):
         )
         self.role = Role.PATIENT
         self.opposite_role = Role.DOCTOR
-    
+
+    def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
+        if self.role is None:
+            raise ValueError("Bot role is None.")
+        msgs = []
+        for shot in self.shots:
+            # system message: prefix_instruction + shot_context_text
+            msgs.append({
+                "role": "system",
+                "content": self.prefix_instruction + '\n' + shot.context.text()
+            })
+            # dialogue
+            for d in shot.dialogue.data:
+                msgs.append({
+                    "role": "system",
+                    "name": "example_" + d["role"], # help clarify that this is an example
+                    "content": d["utterance"]
+                })
+        # current system message: prefix_instruction + context_text
+        msgs.append({
+            "role": "system",
+            "content": self.prefix_instruction + '\n' + self.context.text()
+        })
+        # current diaglogue
+        for d in self.dialogue.data:
+            msgs.append({
+                "role": "assistant" if d["role"] == self.role.value else "user",
+                "name": d["role"],
+                "content": d["utterance"]
+            })
+        # suffix_instruction if it exists
+        if self.suffix_instruction:
+            msgs.append({
+                "role": "system",
+                "content": self.suffix_instruction
+            })
+        return msgs
+
     def inform_initial_evidence(self, utterance: str) -> str:
         """Inform the initial evidence to the doctor."""
         self.dialogue.add_utterance(self.opposite_role, utterance)
@@ -166,14 +183,15 @@ class PatientBot(Bot):
 
 class DoctorBot(Bot):
     """The chat bot playing the doctor role."""
-    greeting_msg = json.dumps({
+    greeting_msg = {
         "action": "greeting",
         "question": "How may I help you today?"
-    })
-    ask_basic_info_msg = json.dumps({
-        "action": "ask_basic_info",
-        "question": "What's your sex and age?"
-    })
+    }
+    final_diagnosis_msg = "Based on your description, the most likely diagnosis is"
+    # ask_basic_info_msg = json.dumps({
+    #     "action": "ask_basic_info",
+    #     "question": "What's your sex and age?"
+    # })
 
     def __init__(
         self,
@@ -184,8 +202,9 @@ class DoctorBot(Bot):
         suffix_instruction: str,
         suffix_instructions: dict[str, str], # the doctor has different suffix instructions fr "ask_finding" and "make_diagnosis"
         model: Model,
-        max_ddx: int = int(1e8),
-        prompt_format: str = PromptFormat.RAW_TEXT.value,
+        max_ddx: int,
+        prompt_mode: str,
+        prompt_format: str,
     ):
         super().__init__(
             prefix_instruction,
@@ -200,18 +219,80 @@ class DoctorBot(Bot):
         self.suffix_instructions = suffix_instructions
         self.max_ddx = max_ddx
         self.set_max_ddx()
+        if prompt_mode not in [p.value for p in PromptMode]:
+            raise ValueError(f"Invalid prompt mode: {prompt_mode}")
+        self.prompt_mode = prompt_mode
         if prompt_format not in [p.value for p in PromptFormat]:
             raise ValueError(f"Invalid prompt format: {prompt_format}")
         self.prompt_format = prompt_format
+
+    def parse_utterance(self, utterance: dict[str, Any]) -> str:
+        """Parse the utterance according to prompt_mode and prompt_format."""
+        if self.prompt_mode == PromptMode.STANDARD.value:
+            if self.prompt_format == PromptFormat.JSON.value:
+                d = {"action": utterance["action"]}
+                if utterance["action"] == Action.MAKE_DIAGNOSIS.value:
+                    d[ReasoningStep.FINAL_DIAGNOSIS.value] = utterance[ReasoningStep.FINAL_DIAGNOSIS.value]
+                elif utterance["action"] in [Action.ASK_FINDING.value, Action.GREETING.value]:
+                    d[ReasoningStep.QUESTION.value] = utterance[ReasoningStep.QUESTION.value]
+                else:
+                    raise ValueError(f"Invalid action: {utterance['action']}")
+                return json.dumps(d)
+            elif self.prompt_format == PromptFormat.RAW_TEXT.value:
+                if utterance["action"] == Action.MAKE_DIAGNOSIS.value:
+                    return f"{self.final_diagnosis_msg} {utterance[ReasoningStep.FINAL_DIAGNOSIS.value]}."
+                elif utterance["action"] in [Action.ASK_FINDING.value, Action.GREETING.value]:
+                    return utterance[ReasoningStep.QUESTION.value]
+                else:
+                    raise ValueError(f"Invalid action: {utterance['action']}")
+            else:
+                raise ValueError(f"Invalid prompt format: {self.prompt_format}")
+        else:
+            raise NotImplementedError
+
+    def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
+        if self.role is None:
+            raise ValueError("Bot role is None.")
+        msgs = []
+        for shot in self.shots:
+            # system message: prefix_instruction + shot_context_text
+            msgs.append({
+                "role": "system",
+                "content": self.prefix_instruction + '\n' + shot.context.text()
+            })
+            # dialogue
+            for d in shot.dialogue.data:
+                msgs.append({
+                    "role": "system",
+                    "name": "example_" + d["role"], # help clarify that this is an example
+                    "content": d["utterance"] if d["role"] == Role.PATIENT.value else self.parse_utterance(d["utterance"])
+                })
+        # current system message: prefix_instruction + context_text
+        msgs.append({
+            "role": "system",
+            "content": self.prefix_instruction + '\n' + self.context.text()
+        })
+        # current diaglogue
+        for d in self.dialogue.data:
+            msgs.append({
+                "role": "assistant" if d["role"] == self.role.value else "user",
+                "name": d["role"],
+                "content": d["utterance"]
+            })
+        # suffix_instruction if it exists
+        if self.suffix_instruction:
+            msgs.append({
+                "role": "system",
+                "content": self.suffix_instruction
+            })
+        return msgs
     
     def set_max_ddx(self) -> None:
         """Set the maximum number of differential diagnoses."""
         for shot in self.shots:
-            shot.dialogue.reverse_parse_dialogue()
             for turn in shot.dialogue.data:
                 if turn["role"] == self.role.value and isinstance(turn["utterance"], dict) and "ranked differential diagnosis" in turn["utterance"]:
                     turn["utterance"]["ranked differential diagnosis"] = turn["utterance"]["ranked differential diagnosis"][:self.max_ddx]
-            shot.dialogue.parse_dialogue()
     
     def set_suffix_instruction(self, suffix_instruction: str) -> None:
         """Set the suffix instruction for the bot."""
@@ -220,9 +301,14 @@ class DoctorBot(Bot):
     def greeting(self, utterance: str = "") -> str:
         if utterance:
             self.dialogue.add_utterance(self.opposite_role, utterance)
-        self.dialogue.add_utterance(self.role, self.greeting_msg)
-        d = json.loads(self.greeting_msg)
-        return d["question"]
+        if self.prompt_format == PromptFormat.JSON.value:
+            greeting_msg = json.dumps(self.greeting_msg)
+        elif self.prompt_format == PromptFormat.RAW_TEXT.value:
+            greeting_msg = self.greeting_msg["question"]
+        else:
+            raise ValueError(f"Invalid prompt format: {self.prompt_format}")
+        self.dialogue.add_utterance(role=self.role, utterance=greeting_msg)
+        return self.greeting_msg["question"]
     
     def ask_basic_info(self, utterance: str = "") -> str:
         if utterance:
@@ -232,25 +318,33 @@ class DoctorBot(Bot):
         self.dialogue.add_utterance(self.role, self.ask_basic_info_msg)
         d = json.loads(self.ask_basic_info_msg)
         return d["question"]
+
+    def parse_response(self, response: str, key: str) -> str:
+        if self.prompt_format == PromptFormat.JSON.value:
+            try:
+                d = json.loads(response)
+            except:
+                print(f"===== Error response =====\n{response}\n")
+                raise ValueError("Response is not a valid JSON string.")
+            return d[key]
+        elif self.prompt_format == PromptFormat.RAW_TEXT.value:
+            if self.prompt_mode == PromptMode.STANDARD.value:
+                return response
+            elif self.prompt_mode == PromptMode.DRCoT.value:
+                # TODO: return only the question in DR-CoT prompting mode
+                raise NotImplementedError
+        else:
+            raise ValueError(f"Invalid prompt format: {self.prompt_format}")
     
     def ask_finding(self, utterance: str) -> str:
-        self.set_suffix_instruction(self.suffix_instructions["ask_finding"])
+        self.set_suffix_instruction(self.suffix_instructions[Action.ASK_FINDING.value])
         response = self.respond(utterance)
-        try:
-            d = json.loads(response)
-        except:
-            print(f"===== Error response =====\n{response}\n")
-            raise ValueError("Response is not a valid JSON string.")
-        return d["question"]
+        return self.parse_response(response, key=ReasoningStep.QUESTION.value)
 
     def make_diagnosis(self, utterance: str) -> str:
-        self.set_suffix_instruction(self.suffix_instructions["make_diagnosis"])
+        self.set_suffix_instruction(self.suffix_instructions[Action.MAKE_DIAGNOSIS.value])
         response = self.respond(utterance)
-        try:
-            d = json.loads(response)
-        except:
-            raise ValueError("Response is not a valid JSON string.")
-        return d["most likely diagnosis"]
+        return self.parse_response(response, key=ReasoningStep.FINAL_DIAGNOSIS.value)
 
     @property
     def state(self) -> dict[str, Any]:
