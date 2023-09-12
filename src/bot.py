@@ -1,7 +1,7 @@
 import json
 import yaml
 from enum import Enum
-from typing import Any
+from typing import Any, Union
 from pathlib import Path
 
 from .shot import Shot
@@ -188,6 +188,7 @@ class DoctorBot(Bot):
         "question": "How may I help you today?"
     }
     final_diagnosis_msg = "Based on your description, the most likely diagnosis is"
+    history_taking_msg = "<History taking>"
     # ask_basic_info_msg = json.dumps({
     #     "action": "ask_basic_info",
     #     "question": "What's your sex and age?"
@@ -226,8 +227,10 @@ class DoctorBot(Bot):
             raise ValueError(f"Invalid prompt format: {prompt_format}")
         self.prompt_format = prompt_format
 
-    def parse_utterance(self, utterance: dict[str, Any]) -> str:
+    def parse_utterance(self, utterance: Union[str, dict[str, Any]]) -> str:
         """Parse the utterance according to prompt_mode and prompt_format."""
+        if isinstance(utterance, str):
+            return utterance
         if self.prompt_mode == PromptMode.STANDARD.value:
             if self.prompt_format == PromptFormat.JSON.value:
                 d = {"action": utterance["action"]}
@@ -249,6 +252,24 @@ class DoctorBot(Bot):
                 raise ValueError(f"Invalid prompt format: {self.prompt_format}")
         else:
             raise NotImplementedError
+
+    def get_completion_prompt(self) -> str:
+        """Get the completion prompt (a whole string) for the bot."""
+        instruction = self.prefix_instruction + '\n' + self.context.text() + '\n'
+        sents = [instruction]
+        for shot in self.shots:
+            sents.append(self.history_taking_msg)
+            for d in shot.dialogue.data:
+                role_str = d["role"][0].upper() + d["role"][1:]
+                sent = f"{role_str}: {self.parse_utterance(d['utterance'])}"
+                sents.append(sent)
+            sents.append('')
+        sents.append(self.history_taking_msg)
+        for d in self.dialogue.data:
+            role_str = d["role"][0].upper() + d["role"][1:]
+            sent = f"{role_str}: {self.parse_utterance(d['utterance'])}"
+            sents.append(sent)
+        return '\n'.join(sents)
 
     def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
         if self.role is None:

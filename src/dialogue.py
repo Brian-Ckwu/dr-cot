@@ -23,7 +23,7 @@ class Dialogue(object):
 
     def __init__(self, data: list[dict[str, str]] = []):
         self.data = data
-        self.parse_dialogue()
+        # XXX: self.parse_dialogue()
     
     def __len__(self) -> int:
         """Return the number of utterances in the dialogue."""
