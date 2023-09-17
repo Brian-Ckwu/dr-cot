@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 
+from src import model
 from src import *
 
 class Experiment(object):
@@ -38,24 +39,26 @@ class Experiment(object):
             context=Context(raw_text=patient_config["context"]),
             dialogue=Dialogue(data=[]),
             suffix_instruction=patient_config["suffix_instruction"],
-            model=OpenAIModel(config=config.patient.model_config)
+            model=getattr(model, config.patient.model_type)(config=config.patient.model_config)
         )
     
     def initialize_doctor(self, possible_diagnoses: list[str]) -> DoctorBot:
         return DoctorBot(
-            prefix_instruction=Path(os.path.join("./prompts/doctor/prefix_instructions", f"{config.doctor.prompt_mode}.txt")).read_text(),
+            prefix_instruction=Path(os.path.join("./prompts/doctor/prefix_instructions", f"{self.config.doctor.prompt_mode}.txt")).read_text(),
             shots=[
                 Shot(
                     context=DoctorContext(possible_diagnoses),
                     dialogue=Dialogue(data=shot["dialogue"])
-                ) for shot in [json.loads(Path(path).read_bytes()) for path in config.doctor.shots_paths]
+                ) for shot in [json.loads(Path(path).read_bytes()) for path in self.config.doctor.shots_paths]
             ],
             context=DoctorContext(possible_diagnoses),
             dialogue=Dialogue(data=[]),
             suffix_instruction="",
-            suffix_instructions=json.loads((Path("./prompts/doctor/suffix_instructions") / f"{config.doctor.prompt_mode}.json").read_bytes()),
-            model=OpenAIModel(config=config.doctor.model_config),
-            max_ddx=self.config.doctor.max_ddx
+            suffix_instructions=json.loads((Path("./prompts/doctor/suffix_instructions") / f"{self.config.doctor.prompt_mode}.json").read_bytes()),
+            model=getattr(model, config.doctor.model_type)(config=self.config.doctor.model_config),
+            max_ddx=self.config.doctor.max_ddx,
+            prompt_mode=self.config.doctor.prompt_mode,
+            prompt_format=self.config.doctor.prompt_format
         )
 
     def get_new_patient_context(self, pat: pd.Series) -> PatientContext:
@@ -84,6 +87,10 @@ class Experiment(object):
         a = patient_bot.inform_initial_evidence(utterance=q)
         for _ in range(self.config.doctor.ask_turns):
             q = doctor_bot.ask_finding(utterance=a)
+            if (q is None) or (q[-1] != '?'):  # no more questions
+                self.save_dialogues(index=dialogue_index)
+                dx = q
+                return dx
             a = patient_bot.respond(utterance=q)
             if self.debug:
                 print(f"Doctor: {q}")
