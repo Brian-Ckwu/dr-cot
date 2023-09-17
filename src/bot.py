@@ -34,6 +34,7 @@ class ReasoningStep(Enum):
 
 class Bot(object):
     """The chat bot playing a given role."""
+    history_taking_msg = "<History taking>"
 
     def __init__(
         self,
@@ -66,15 +67,17 @@ class Bot(object):
         else:
             prompt = self.get_completion_prompt()
         return prompt
-    
+
+    def get_role_string(self) -> str:
+        return self.role.value[0].upper() + self.role.value[1:]
+
     def respond(self, utterance: str) -> str:
         """Respond to the counterpart chatbot's utterance."""
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
         prompt = self.get_prompt()
-        response = self.model.generate(prompt)
+        response = self.model.generate(prompt).strip()
 
-        # TODO: May need additional parsing here to separate inner monologue from actual response
         self.dialogue.add_utterance(self.role, response)
         return response
     
@@ -94,7 +97,6 @@ class Bot(object):
 
 class PatientBot(Bot):
     """The chat bot playing the patient role."""
-    context_delimiter = "```" # currently triple backticks
 
     def __init__(
         self,
@@ -115,6 +117,32 @@ class PatientBot(Bot):
         )
         self.role = Role.PATIENT
         self.opposite_role = Role.DOCTOR
+
+    def get_completion_prompt(self) -> str:
+        """Get the completion prompt (a whole string) for the bot."""
+        sents = []
+        for shot in self.shots:
+            sents.append(self.prefix_instruction)
+            sents.append(shot.context.text())
+            sents.append('')
+            sents.append(self.history_taking_msg)
+            for d in shot.dialogue.data:
+                role_str = d["role"][0].upper() + d["role"][1:]
+                sent = f"{role_str}: {d['utterance']}"
+                sents.append(sent)
+            sents.append('')
+        sents.append(self.prefix_instruction)
+        sents.append(self.context.text())
+        sents.append('')
+        sents.append(self.history_taking_msg)
+        for d in self.dialogue.data:
+            role_str = d["role"][0].upper() + d["role"][1:]
+            sent = f"{role_str}: {d['utterance']}"
+            sents.append(sent)
+        suffix = ''
+        if self.suffix_instruction:
+            suffix = self.suffix_instruction
+        return '\n'.join(sents) + f"\n{self.get_role_string()}: {suffix}"
 
     def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
         if self.role is None:
@@ -185,7 +213,6 @@ class DoctorBot(Bot):
         "question": "How may I help you today?"
     }
     final_diagnosis_msg = "Based on your description, the most likely diagnosis is"
-    history_taking_msg = "<History taking>"
     ask_finding_prefix = "[Ask finding]"
     make_diagnosis_prefix = "[Make diagnosis]"
 
@@ -376,21 +403,31 @@ class DoctorBot(Bot):
             if self.prompt_mode == PromptMode.STANDARD.value:
                 return response
             elif self.prompt_mode == PromptMode.DRCoT.value:
-                return re.findall(f"\\[{key}\\] (.*)", response)[0]
+                found = re.findall(f"\\[{key}\\] (.*)", response)
+                if len(found) > 0:
+                    response = found[0]
+                elif key == ReasoningStep.QUESTION.value:  # len(found) == 0
+                    dx = re.findall(f"\\[{ReasoningStep.FINAL_DIAGNOSIS.value}\\] (.*)", response)  # early termination of the dialogue (the doctor bot make a diagnosis)
+                    if len(dx) > 0:
+                        response = dx[0]
+                    else:
+                        response = None
+                elif key == ReasoningStep.FINAL_DIAGNOSIS.value:  # len(found) == 0
+                    response = None
+                else:
+                    raise ValueError(f"Invalid key: {key}")
+                return response
         else:
             raise ValueError(f"Invalid prompt format: {self.prompt_format}")
-
-    def get_role_string(self) -> str:
-        return self.role.value[0].upper() + self.role.value[1:]
 
     def respond(self, utterance: str) -> str:
         """Respond to the PatientBot's utterance."""
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
         prompt = self.get_prompt()
-        response = self.model.generate(prompt)
+        response = self.model.generate(prompt).strip()
 
-        self.dialogue.add_utterance(self.role, self.suffix_instruction + ' ' + response.strip())
+        self.dialogue.add_utterance(self.role, self.suffix_instruction + ' ' + response)
         return response
 
     def ask_finding(self, utterance: str) -> str:

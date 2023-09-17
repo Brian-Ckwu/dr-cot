@@ -17,7 +17,7 @@ class PatientContext(Context):
     release_conditions = json.loads((Path(__file__).parent.parent / "ddxplus/release_conditions.json").read_bytes())
     evidence2desc = json.loads((Path(__file__).parent.parent / "ddxplus/our_evidences_to_qa_v2.json").read_bytes())
     desc_field = "affirmative_en"
-    context_delimiter = "```"
+    context_delimiter = '""'
     context_prefix = "patient profile: "
     
     def __init__(
