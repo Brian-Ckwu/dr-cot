@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from colorama import Fore, Style
 
 import openai
+import google.generativeai as palm
 
 class Model(ABC):
     """A model for generating a response to a given prompt."""
@@ -18,7 +19,37 @@ class Model(ABC):
     def generate(self, prompt: Any) -> str:
         """Generates a response to a given prompt."""
         raise NotImplementedError
-    
+
+class PaLM2Model(Model):
+    """A model that uses PaLM2 to generate a response to a given prompt."""
+    chatcompletion_models = set()
+    completion_models = {"models/text-bison-001"}
+
+    def __init__(
+        self,
+        config: Union[dict, Namespace],
+    ):
+        palm.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        if isinstance(config, Namespace):
+            config = vars(config)
+        self.config = config
+
+    def generate(self, prompt: str) -> str:
+        """Generate a response to a given prompt."""
+        response = palm.generate_text(
+            **self.config,
+            prompt=prompt,
+            safety_settings=[  # set all safety settings to 4 (no restrictions)
+                {"category": "HARM_CATEGORY_DEROGATORY", "threshold": 4},
+                {"category": "HARM_CATEGORY_TOXICITY", "threshold": 4},
+                {"category": "HARM_CATEGORY_VIOLENCE", "threshold": 4},
+                {"category": "HARM_CATEGORY_SEXUAL", "threshold": 4},
+                {"category": "HARM_CATEGORY_MEDICAL", "threshold": 4},
+                {"category": "HARM_CATEGORY_DANGEROUS", "threshold": 4}
+            ]
+        )
+        return response.result
+
 class OpenAIModel(Model):
     """A model that uses an API (e.g., OpenAI APIs) to generate a response to a given prompt."""
     chatcompletion_models = {"gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613", "gpt-4", "gpt-4-0613", "gpt-4-32k", "gpt-4-32k-0613"}
