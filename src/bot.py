@@ -250,8 +250,30 @@ class DoctorBot(Bot):
                     raise ValueError(f"Invalid action: {utterance['action']}")
             else:
                 raise ValueError(f"Invalid prompt format: {self.prompt_format}")
+        elif self.prompt_mode == PromptMode.DRCoT.value:
+            if self.prompt_format == PromptFormat.JSON.value:
+                raise NotImplementedError
+            elif self.prompt_format == PromptFormat.RAW_TEXT.value:
+                sents = []
+                if utterance["action"] == Action.GREETING.value:
+                    sents.append(utterance[ReasoningStep.QUESTION.value])
+                elif utterance["action"] in [Action.ASK_FINDING.value, Action.MAKE_DIAGNOSIS.value]:
+                    symptom_review = f"""Based on the {ReasoningStep.POS_FINDINGS.value} '{", ".join(utterance[ReasoningStep.POS_FINDINGS.value])}' and the {ReasoningStep.NEG_FINDINGS.value} '{", ".join(utterance[ReasoningStep.NEG_FINDINGS.value])}',"""
+                    dd_formulation = f"""the {ReasoningStep.RANKED_DDX.value} is '{", ".join(utterance[ReasoningStep.RANKED_DDX.value])}'."""
+                    sents += [symptom_review, dd_formulation]
+                    if utterance["action"] == Action.ASK_FINDING.value:
+                        next_inquiry = f"""To narrow down the {ReasoningStep.RANKED_DDX.value}, the {ReasoningStep.ASK_FINDING.value} is '{utterance[ReasoningStep.ASK_FINDING.value]}'."""
+                        question = f"""[{ReasoningStep.QUESTION.value}] {utterance[ReasoningStep.QUESTION.value]}"""
+                        sents += [next_inquiry, question]
+                    else:  # Action.MAKE_DIAGNOSIS.value
+                        dx_rationale = utterance[ReasoningStep.DX_RATIONALE.value]
+                        final_dx = f"""[{ReasoningStep.FINAL_DIAGNOSIS.value}] {utterance[ReasoningStep.FINAL_DIAGNOSIS.value]}"""
+                        sents += [dx_rationale, final_dx]
+                return ' '.join(sents)
+            else:
+                raise ValueError(f"Invalid prompt format: {self.prompt_format}")
         else:
-            raise NotImplementedError
+            raise ValueError(f"Invalid prompt mode: {self.prompt_mode}")
 
     def get_completion_prompt(self) -> str:
         """Get the completion prompt (a whole string) for the bot."""

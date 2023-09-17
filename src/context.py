@@ -120,7 +120,7 @@ class PatientContext(Context):
 
 class DoctorContext(Context):
     context_prefix = "possible diagnoses: "
-    context_delimiter = "```"
+    context_delimiter = '""'
     separator = "; "
 
     def __init__(self, possible_diagnoses: list[str]):
