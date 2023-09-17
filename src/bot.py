@@ -1,3 +1,4 @@
+import re
 import json
 import yaml
 from enum import Enum
@@ -70,12 +71,8 @@ class Bot(object):
         """Respond to the counterpart chatbot's utterance."""
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
-        if isinstance(self.model, OpenAIModel):
-            prompt = self.get_prompt()
-            # print(json.dumps(prompt, indent=4)) # XXX
-            response = self.model.generate(prompt)
-        else:
-            raise NotImplementedError
+        prompt = self.get_prompt()
+        response = self.model.generate(prompt)
 
         # TODO: May need additional parsing here to separate inner monologue from actual response
         self.dialogue.add_utterance(self.role, response)
@@ -296,7 +293,7 @@ class DoctorBot(Bot):
         suffix = ''
         if self.suffix_instruction:
             suffix = self.suffix_instruction
-        return '\n'.join(sents) + '\n' + suffix
+        return '\n'.join(sents) + f"\n{self.get_role_string()}: {suffix}"
 
     def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
         if self.role is None:
@@ -379,21 +376,30 @@ class DoctorBot(Bot):
             if self.prompt_mode == PromptMode.STANDARD.value:
                 return response
             elif self.prompt_mode == PromptMode.DRCoT.value:
-                # TODO: return only the question in DR-CoT prompting mode
-                raise NotImplementedError
+                return re.findall(f"\\[{key}\\] (.*)", response)[0]
         else:
             raise ValueError(f"Invalid prompt format: {self.prompt_format}")
 
     def get_role_string(self) -> str:
         return self.role.value[0].upper() + self.role.value[1:]
-    
+
+    def respond(self, utterance: str) -> str:
+        """Respond to the PatientBot's utterance."""
+        self.dialogue.add_utterance(self.opposite_role, utterance)
+
+        prompt = self.get_prompt()
+        response = self.model.generate(prompt)
+
+        self.dialogue.add_utterance(self.role, self.suffix_instruction + ' ' + response.strip())
+        return response
+
     def ask_finding(self, utterance: str) -> str:
-        self.set_suffix_instruction(f"{self.get_role_string()}: {self.ask_finding_prefix}")
+        self.set_suffix_instruction(f"{self.ask_finding_prefix}")
         response = self.respond(utterance)
         return self.parse_response(response, key=ReasoningStep.QUESTION.value)
 
     def make_diagnosis(self, utterance: str) -> str:
-        self.set_suffix_instruction(f"{self.get_role_string()}: {self.make_diagnosis_prefix}")
+        self.set_suffix_instruction(f"{self.make_diagnosis_prefix}")
         response = self.respond(utterance)
         return self.parse_response(response, key=ReasoningStep.FINAL_DIAGNOSIS.value)
 
