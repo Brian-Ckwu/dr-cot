@@ -189,10 +189,8 @@ class DoctorBot(Bot):
     }
     final_diagnosis_msg = "Based on your description, the most likely diagnosis is"
     history_taking_msg = "<History taking>"
-    # ask_basic_info_msg = json.dumps({
-    #     "action": "ask_basic_info",
-    #     "question": "What's your sex and age?"
-    # })
+    ask_finding_prefix = "[Ask finding]"
+    make_diagnosis_prefix = "[Make diagnosis]"
 
     def __init__(
         self,
@@ -258,9 +256,13 @@ class DoctorBot(Bot):
                 if utterance["action"] == Action.GREETING.value:
                     sents.append(utterance[ReasoningStep.QUESTION.value])
                 elif utterance["action"] in [Action.ASK_FINDING.value, Action.MAKE_DIAGNOSIS.value]:
+                    if utterance["action"] == Action.ASK_FINDING.value:
+                        prefix = self.ask_finding_prefix
+                    else:  # Action.MAKE_DIAGNOSIS.value
+                        prefix = self.make_diagnosis_prefix
                     symptom_review = f"""Based on the {ReasoningStep.POS_FINDINGS.value} '{", ".join(utterance[ReasoningStep.POS_FINDINGS.value])}' and the {ReasoningStep.NEG_FINDINGS.value} '{", ".join(utterance[ReasoningStep.NEG_FINDINGS.value])}',"""
                     dd_formulation = f"""the {ReasoningStep.RANKED_DDX.value} is '{", ".join(utterance[ReasoningStep.RANKED_DDX.value])}'."""
-                    sents += [symptom_review, dd_formulation]
+                    sents += [prefix, symptom_review, dd_formulation]
                     if utterance["action"] == Action.ASK_FINDING.value:
                         next_inquiry = f"""To narrow down the {ReasoningStep.RANKED_DDX.value}, the {ReasoningStep.ASK_FINDING.value} is '{utterance[ReasoningStep.ASK_FINDING.value]}'."""
                         question = f"""[{ReasoningStep.QUESTION.value}] {utterance[ReasoningStep.QUESTION.value]}"""
@@ -291,7 +293,10 @@ class DoctorBot(Bot):
             role_str = d["role"][0].upper() + d["role"][1:]
             sent = f"{role_str}: {self.parse_utterance(d['utterance'])}"
             sents.append(sent)
-        return '\n'.join(sents)
+        suffix = ''
+        if self.suffix_instruction:
+            suffix = self.suffix_instruction
+        return '\n'.join(sents) + '\n' + suffix
 
     def get_chatcompletion_prompt(self) -> list[dict[str, str]]:
         if self.role is None:
@@ -378,14 +383,17 @@ class DoctorBot(Bot):
                 raise NotImplementedError
         else:
             raise ValueError(f"Invalid prompt format: {self.prompt_format}")
+
+    def get_role_string(self) -> str:
+        return self.role.value[0].upper() + self.role.value[1:]
     
     def ask_finding(self, utterance: str) -> str:
-        self.set_suffix_instruction(self.suffix_instructions[Action.ASK_FINDING.value])
+        self.set_suffix_instruction(f"{self.get_role_string()}: {self.ask_finding_prefix}")
         response = self.respond(utterance)
         return self.parse_response(response, key=ReasoningStep.QUESTION.value)
 
     def make_diagnosis(self, utterance: str) -> str:
-        self.set_suffix_instruction(self.suffix_instructions[Action.MAKE_DIAGNOSIS.value])
+        self.set_suffix_instruction(f"{self.get_role_string()}: {self.make_diagnosis_prefix}")
         response = self.respond(utterance)
         return self.parse_response(response, key=ReasoningStep.FINAL_DIAGNOSIS.value)
 
