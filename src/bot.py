@@ -269,12 +269,17 @@ class DoctorBot(Bot):
                     raise ValueError(f"Invalid action: {utterance['action']}")
                 return json.dumps(d)
             elif self.prompt_format == PromptFormat.RAW_TEXT.value:
+                prefix = ''
                 if utterance["action"] == Action.MAKE_DIAGNOSIS.value:
-                    return f"{self.final_diagnosis_msg} {utterance[ReasoningStep.FINAL_DIAGNOSIS.value]}."
+                    prefix = self.make_diagnosis_prefix + ' '
+                    text = f"{self.final_diagnosis_msg} {utterance[ReasoningStep.FINAL_DIAGNOSIS.value]}."
                 elif utterance["action"] in [Action.ASK_FINDING.value, Action.GREETING.value]:
-                    return utterance[ReasoningStep.QUESTION.value]
+                    if utterance["action"] == Action.ASK_FINDING.value:
+                        prefix = self.ask_finding_prefix + ' '
+                    text = utterance[ReasoningStep.QUESTION.value]
                 else:
                     raise ValueError(f"Invalid action: {utterance['action']}")
+                return prefix + text
             else:
                 raise ValueError(f"Invalid prompt format: {self.prompt_format}")
         elif self.prompt_mode == PromptMode.DRCoT.value:
