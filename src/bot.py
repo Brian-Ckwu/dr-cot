@@ -35,6 +35,7 @@ class ReasoningStep(Enum):
 class Bot(object):
     """The chat bot playing a given role."""
     history_taking_msg = "<History taking>"
+    NONE_RESPONSE = "NONE"
 
     def __init__(
         self,
@@ -76,7 +77,11 @@ class Bot(object):
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
         prompt = self.get_prompt()
-        response = self.model.generate(prompt).strip()
+        response = self.model.generate(prompt)
+        if response is None:
+            response = self.NONE_RESPONSE
+        else:
+            response = response.strip()
 
         self.dialogue.add_utterance(self.role, response)
         return response
@@ -411,9 +416,9 @@ class DoctorBot(Bot):
                     if len(dx) > 0:
                         response = dx[0]
                     else:
-                        response = None
+                        response = self.NONE_RESPONSE
                 elif key == ReasoningStep.FINAL_DIAGNOSIS.value:  # len(found) == 0
-                    response = None
+                    response = self.NONE_RESPONSE
                 else:
                     raise ValueError(f"Invalid key: {key}")
                 return response
@@ -425,7 +430,11 @@ class DoctorBot(Bot):
         self.dialogue.add_utterance(self.opposite_role, utterance)
 
         prompt = self.get_prompt()
-        response = self.model.generate(prompt).strip()
+        response = self.model.generate(prompt)
+        if response is None:
+            response = self.NONE_RESPONSE
+        else:
+            response = response.strip()
 
         self.dialogue.add_utterance(self.role, self.suffix_instruction + ' ' + response)
         return response

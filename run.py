@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import yaml
 import shutil
@@ -73,26 +74,35 @@ class Experiment(object):
         (self.config.log_path / "patient_state.json").write_text(json.dumps(self.patient_bot.state, indent=4))
         (self.config.log_path / "doctor_state.json").write_text(json.dumps(self.doctor_bot.state, indent=4))
         self.config.patient_log_path = self.config.log_path / "patient_dialogues"
+        self.config.profile_log_path = self.config.log_path / "patient_profiles"
         self.config.doctor_log_path = self.config.log_path / "doctor_dialogues"
         self.config.patient_log_path.mkdir(parents=True, exist_ok=True)
+        self.config.profile_log_path.mkdir(parents=True, exist_ok=True)
         self.config.doctor_log_path.mkdir(parents=True, exist_ok=True)
-    
+
     def save_dialogues(self, index: int) -> None:
         self.patient_bot.dialogue.save_dialogue(save_path=self.config.patient_log_path / f"{index}.json", is_json=False)
         self.doctor_bot.dialogue.save_dialogue(save_path=self.config.doctor_log_path / f"{index}.json", is_json=(self.config.doctor.prompt_format == "json"))
+
+    def save_patient_profile(self, index: int) -> None:
+        (self.config.profile_log_path / f"{index}.txt").write_text(self.patient_bot.context.text())
 
     def conduct_history_taking(self, doctor_bot: DoctorBot, patient_bot: PatientBot, dialogue_index: int) -> str:
         """Conduct history taking with the given doctor and patient bots."""
         q = doctor_bot.greeting()
         a = patient_bot.inform_initial_evidence(utterance=q)
-        for _ in range(self.config.doctor.ask_turns):
+        for i in range(self.config.doctor.ask_turns):
             q = doctor_bot.ask_finding(utterance=a)
-            if (q is None) or (q[-1] != '?'):  # no more questions
+            if (q == doctor_bot.NONE_RESPONSE) or (q[-1] != '?'):  # no more questions
                 self.save_dialogues(index=dialogue_index)
                 dx = q
                 return dx
             a = patient_bot.respond(utterance=q)
+            if (a == patient_bot.NONE_RESPONSE):
+                self.save_dialogues(index=dialogue_index)
+                return patient_bot.NONE_RESPONSE
             if self.debug:
+                print(f"----- Turn {i + 1} -----")
                 print(f"Doctor: {q}")
                 print(f"Patient: {a}")
                 self.save_dialogues(index=dialogue_index)
@@ -103,12 +113,15 @@ class Experiment(object):
     def run(self) -> None:
         """Run the experiment with the given configuration."""
         for i, pat in self.pats.iterrows():
+            if self.debug:
+                print(f"\n===== Patient Index {i} =====\n")
             patient_context = self.get_new_patient_context(pat)
-            # TODO: log patient profile
             self.patient_bot.reset(context=patient_context)
             self.doctor_bot.clear_dialogue()
+            self.save_patient_profile(index=i)
             dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
             print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
+            time.sleep(1)
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
