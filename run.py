@@ -1,10 +1,12 @@
 import os
+import re
 import time
 import json
 import yaml
 import shutil
 import pandas as pd
 from pathlib import Path
+from colorama import Fore, Style
 from argparse import ArgumentParser, Namespace
 
 from src import model
@@ -12,9 +14,10 @@ from src import *
 
 class Experiment(object):
 
-    def __init__(self, config: Namespace, debug: bool = False) -> None:
+    def __init__(self, config: Namespace, debug: bool = False, api_interval: float = 1.0) -> None:
         self.config = config
         self.debug = debug
+        self.api_interval = api_interval
         print(f"Loading dataset...")
         dataset = DDxDataset(**vars(config.data))
         self.pats = dataset.sample_patients(
@@ -106,6 +109,7 @@ class Experiment(object):
                 print(f"Doctor: {q}")
                 print(f"Patient: {a}")
                 self.save_dialogues(index=dialogue_index)
+            time.sleep(self.api_interval)
         dx = doctor_bot.make_diagnosis(utterance=a)
         self.save_dialogues(index=dialogue_index)
         return dx
@@ -121,13 +125,48 @@ class Experiment(object):
             self.save_patient_profile(index=i)
             dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
             print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
-            time.sleep(1)
+
+    def extract_dx(self, utterance: str) -> str:
+        """Extract the diagnosis from the given utterance."""
+        if self.config.doctor.prompt_mode == PromptMode.STANDARD.value:
+            found = re.findall(f"{self.doctor_bot.final_diagnosis_msg} (.*)", utterance)
+            if len(found) == 1:
+                utterance = found[0].strip().rstrip('.')
+        elif self.config.doctor.prompt_mode == PromptMode.DRCoT.value:
+            found = re.findall(f"\\[{ReasoningStep.FINAL_DIAGNOSIS.value}\\] (.*)", utterance)
+            if len(found) == 1:
+                utterance = found[0].strip().rstrip('.')
+        return utterance
+
+    def evaluate(self) -> None:
+        """Evaluate the experiment with the given configuration."""
+        ncorrect = 0
+        labels = []
+        preds = []
+        for i, pat in self.pats.iterrows():
+            filepath = self.config.doctor_log_path / f"{i}.json"
+            if not filepath.exists():
+                raise ValueError(f"File {filepath} does not exist.")
+            final_utter = json.loads(filepath.read_bytes())[-1]
+            if not final_utter["role"] == Role.DOCTOR.value:
+                raise ValueError(f"Final utterance is not from doctor.")
+            label = pat.PATHOLOGY
+            pred = self.extract_dx(final_utter["utterance"])
+            labels.append(label)
+            preds.append(pred)
+            ncorrect += int(pred == label)
+            print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
+        metrics = Metrics(labels, preds)
+        metrics.save_results(save_path=self.config.log_path / "eval_results.json")
+        print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Correct: {ncorrect} / Predicted: {len(self.pats)})")
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
 
     parser.add_argument("--config_path", type=Path, required=True)
+    parser.add_argument("--api_interval", type=float, default=1)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--evaluate", action="store_true")
 
     return parser.parse_args()
 
@@ -139,6 +178,9 @@ if __name__ == "__main__":
     # copy config file to output directory
     config.log_path = Path(config.log_path) / config.doctor.model_config.model / config.doctor.prompt_mode / config.initial_evidence / config.name
     config.log_path.mkdir(parents=True, exist_ok=True)
-    shutil.copy(args.config_path, config.log_path / "config.yaml")
-    experiment = Experiment(config, debug=args.debug)
-    experiment.run()
+    experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
+    if args.evaluate:
+        experiment.evaluate()
+    else:
+        shutil.copy(args.config_path, config.log_path / "config.yaml")
+        experiment.run()
