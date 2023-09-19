@@ -8,6 +8,47 @@ from colorama import Fore, Style
 
 import openai
 import google.generativeai as palm
+import google.api_core.exceptions
+
+def retry_with_exponential_backoff(
+    func,
+    initial_delay: float = 1,
+    exponential_base: float = 2,
+    max_retries: int = 10,
+    errors: tuple = (
+        openai.error.RateLimitError, openai.error.ServiceUnavailableError, openai.error.APIError,
+        google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
+    ),
+):
+    """Retry a function with exponential backoff."""
+
+    def wrapper(*args, **kwargs):
+        # Initialize variables
+        num_retries = 0
+        delay = initial_delay
+        # Loop until a successful response or max_retries is hit or an exception is raised
+        while True:
+            try:
+                return func(*args, **kwargs)
+            # Retry on specific errors
+            except errors as e:
+                # Increment retries
+                num_retries += 1
+                # Check if max retries has been reached
+                if num_retries > max_retries:
+                    raise Exception(
+                        Fore.RED + f"Maximum number of retries ({max_retries}) exceeded." + Style.RESET_ALL
+                    )
+                # Increment the delay
+                delay *= exponential_base
+                # Sleep for the delay
+                print(Fore.YELLOW + f"Error encountered. Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
+                time.sleep(delay)
+            # Raise exceptions for any errors not specified
+            except Exception as e:
+                raise e
+
+    return wrapper
 
 class Model(ABC):
     """A model for generating a response to a given prompt."""
@@ -34,6 +75,7 @@ class PaLM2Model(Model):
             config = vars(config)
         self.config = config
 
+    @retry_with_exponential_backoff
     def generate(self, prompt: str) -> str:
         """Generate a response to a given prompt."""
         response = palm.generate_text(
@@ -72,43 +114,6 @@ class OpenAIModel(Model):
             return self.completion(prompt)
         else:
             raise ValueError(f"Invalid model: {self.config['model']}")
-    
-    def retry_with_exponential_backoff(
-        func,
-        initial_delay: float = 1,
-        exponential_base: float = 2,
-        max_retries: int = 5,
-        errors: tuple = (openai.error.RateLimitError, openai.error.ServiceUnavailableError, openai.error.APIError),
-    ):
-        """Retry a function with exponential backoff."""
-    
-        def wrapper(*args, **kwargs):
-            # Initialize variables
-            num_retries = 0
-            delay = initial_delay
-            # Loop until a successful response or max_retries is hit or an exception is raised
-            while True:
-                try:
-                    return func(*args, **kwargs)
-                # Retry on specific errors
-                except errors as e:
-                    # Increment retries
-                    num_retries += 1
-                    # Check if max retries has been reached
-                    if num_retries > max_retries:
-                        raise Exception(
-                            Fore.RED + f"Maximum number of retries ({max_retries}) exceeded." + Style.RESET_ALL
-                        )
-                    # Increment the delay
-                    delay *= exponential_base
-                    # Sleep for the delay
-                    print(Fore.YELLOW + f"Error encountered. Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
-                    time.sleep(delay)
-                # Raise exceptions for any errors not specified
-                except Exception as e:
-                    raise e
-    
-        return wrapper
 
     @retry_with_exponential_backoff
     def chatcompletion(self, prompt: list[dict[str, str]]) -> str:
