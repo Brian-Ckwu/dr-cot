@@ -27,7 +27,7 @@ class Experiment(object):
         )
         print(f"Sampled {len(self.pats)} patients of initial evidence {config.initial_evidence}.")
         self.patient_bot = self.initialize_patient()
-        self.doctor_bot = self.initialize_doctor(possible_diagnoses=dataset.get_all_diagnoses())
+        self.doctor_bot = self.initialize_doctor(possible_diagnoses=dataset.get_all_diagnoses())  # TODO
         self.log_bots_info()
 
     def initialize_patient(self) -> PatientBot:
@@ -141,6 +141,7 @@ class Experiment(object):
     def evaluate(self) -> None:
         """Evaluate the experiment with the given configuration."""
         ncorrect = 0
+        indices = []
         labels = []
         preds = []
         for i, pat in self.pats.iterrows():
@@ -152,11 +153,12 @@ class Experiment(object):
                 raise ValueError(f"Final utterance is not from doctor.")
             label = pat.PATHOLOGY
             pred = self.extract_dx(final_utter["utterance"])
+            indices.append(i)
             labels.append(label)
             preds.append(pred)
             ncorrect += int(pred == label)
             print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
-        metrics = Metrics(labels, preds)
+        metrics = Metrics(indices, labels, preds)
         metrics.save_results(save_path=self.config.log_path / "eval_results.json")
         print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Correct: {ncorrect} / Predicted: {len(self.pats)})")
 
