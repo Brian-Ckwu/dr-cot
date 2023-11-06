@@ -28,7 +28,15 @@ class Dialogue(object):
     def __len__(self) -> int:
         """Return the number of utterances in the dialogue."""
         return len(self.data)
-    
+
+    def text(self) -> str:
+        sents = list()
+        for turn in self.data:
+            role_text = turn["role"][0].upper() + turn["role"][1:]
+            sent = f"{role_text}: {turn['utterance']}"
+            sents.append(sent)
+        return "\n".join(sents)
+
     def add_utterance(
         self,
         role: Role,
