@@ -298,7 +298,7 @@ class DoctorBot(Bot):
                     dd_formulation = f"""the {ReasoningStep.RANKED_DDX.value} is '{", ".join(utterance[ReasoningStep.RANKED_DDX.value])}'."""
                     sents += [prefix, symptom_review, dd_formulation]
                     if utterance["action"] == Action.ASK_FINDING.value:
-                        next_inquiry = f"""To narrow down the {ReasoningStep.RANKED_DDX.value}, the {ReasoningStep.ASK_FINDING.value} is '{utterance[ReasoningStep.ASK_FINDING.value]}'."""
+                        next_inquiry = f"""To narrow down the {ReasoningStep.RANKED_DDX.value}, {ReasoningStep.ASK_FINDING.value} is '{utterance[ReasoningStep.ASK_FINDING.value]}'."""
                         question = f"""[{ReasoningStep.QUESTION.value}] {utterance[ReasoningStep.QUESTION.value]}"""
                         sents += [next_inquiry, question]
                     else:  # Action.MAKE_DIAGNOSIS.value
