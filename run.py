@@ -19,15 +19,16 @@ class Experiment(object):
         self.debug = debug
         self.api_interval = api_interval
         print(f"Loading dataset...")
-        dataset = DDxDataset(**vars(config.data))
+        dataset = DDxDataset(**vars(config.data.dataset))
         self.pats = dataset.sample_patients(
-            ie=config.initial_evidence,
-            n=config.sample_size,
-            seed=config.seed
+            ie=config.data.initial_evidence,
+            n=config.data.sample_size,
+            seed=config.seed,
+            ddxs=config.data.possible_diagnoses
         )
-        print(f"Sampled {len(self.pats)} patients of initial evidence {config.initial_evidence}.")
+        print(f"Sampled {len(self.pats)} patients of initial evidence {config.data.initial_evidence}.")
         self.patient_bot = self.initialize_patient()
-        self.doctor_bot = self.initialize_doctor(possible_diagnoses=dataset.get_all_diagnoses())  # TODO
+        self.doctor_bot = self.initialize_doctor(possible_diagnoses=config.data.possible_diagnoses)
         self.log_bots_info()
 
     def initialize_patient(self) -> PatientBot:
@@ -178,7 +179,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
     config = dict_to_namespace(config)
     # copy config file to output directory
-    config.log_path = Path(config.log_path) / config.doctor.model_config.model / config.doctor.prompt_mode / config.initial_evidence / config.name
+    config.log_path = Path(config.log_path) / config.doctor.model_config.model.split('/')[-1] / config.doctor.prompt_mode / config.data.initial_evidence / config.name
     config.log_path.mkdir(parents=True, exist_ok=True)
     experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
     if args.evaluate:

@@ -35,9 +35,11 @@ class DDxDataset(object):
     def __len__(self):
         return len(self.df)
     
-    def sample_patients(self, ie: str, n: int, seed: int) -> pd.DataFrame:
+    def sample_patients(self, ie: str, n: int, seed: int, ddxs: list[str] = None) -> pd.DataFrame:
         df_ie = self.df[self.df.INITIAL_EVIDENCE_ENG == ie]
         df_ie_top1 = df_ie[df_ie.DIFFERENTIAL_DIAGNOSIS.apply(lambda l: l[0][0]) == df_ie.PATHOLOGY]
+        if ddxs is not None:
+            df_ie_top1 = df_ie_top1[df_ie_top1.PATHOLOGY.isin(ddxs)]
         return df_ie_top1.sample(n=n, random_state=seed)
     
     def get_evidence_set_of_initial_evidence(self, ie: str, field: str) -> set:
@@ -127,9 +129,9 @@ class DDxDataset(object):
         return convert_evidence
 
 if __name__ == "__main__":
-    csv_path = "../../ddxplus/release_test_patients.csv"
-    pathology_info_path = "../../ddxplus/release_conditions.json"
-    evidences_info_path = "../../ddxplus/our_evidences_to_qa_v2.json"
+    csv_path = "../ddxplus/release_test_patients.csv"
+    pathology_info_path = "../ddxplus/release_conditions.json"
+    evidences_info_path = "../ddxplus/our_evidences_to_qa_v2.json"
 
     dataset = DDxDataset(csv_path, pathology_info_path, evidences_info_path)
-    print(dataset.df[["AGE", "INITIAL_EVIDENCE", "INITIAL_EVIDENCE_ENG", "EVIDENCES_ENG"]])
+    print(dataset.get_ddx_distribution_from_evidence(positives=["cough", "shortness of breath"], negatives=[]))
