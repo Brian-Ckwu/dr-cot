@@ -1,5 +1,7 @@
 import json
+import numpy as np
 from pathlib import Path
+from sklearn.metrics import confusion_matrix
 
 class Metrics:
 
@@ -17,6 +19,14 @@ class Metrics:
             if self.labels[i] == self.preds[i]:
                 ncorrect += 1
         return ncorrect / len(self.labels)
+
+    def confusion_matrix(self, label_set: list[str]) -> np.ndarray:
+        label_dict = dict()
+        for label in label_set:
+            label_dict[label] = len(label_dict)
+        y_true = [label_dict.get(label, len(label_set)) for label in self.labels]
+        y_pred = [label_dict.get(pred, len(label_set)) for pred in self.preds]  # len(label_set) -> "OTHER"
+        return confusion_matrix(y_true, y_pred, labels=range(len(label_set) + 1))
 
     def save_results(self, save_path: str) -> None:
         d = {
