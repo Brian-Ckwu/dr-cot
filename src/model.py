@@ -95,7 +95,7 @@ class PaLM2Model(Model):
 class OpenAIModel(Model):
     """A model that uses an API (e.g., OpenAI APIs) to generate a response to a given prompt."""
     chatcompletion_models = {"gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613", "gpt-4", "gpt-4-0613", "gpt-4-32k", "gpt-4-32k-0613"}
-    completion_models = {"text-davinci-003", "text-curie-001"}
+    completion_models = {"gpt-3.5-turbo-instruct"}
 
     def __init__(
         self,
