@@ -1,3 +1,4 @@
+from typing import Any
 from argparse import Namespace
 
 def dict_to_namespace(d: dict) -> Namespace:
@@ -6,6 +7,17 @@ def dict_to_namespace(d: dict) -> Namespace:
         if isinstance(v, dict):
             d[k] = dict_to_namespace(v)
     return Namespace(**d)
+
+def index_label_pred_to_lists(triples: list[dict[str, Any]]) -> tuple[list[int], list[str], list[str]]:
+    """Convert (index, label, pred) triples to lists of indices, labels, and preds."""
+    indices = []
+    labels = []
+    preds = []
+    for triple in triples:
+        indices.append(triple["index"])
+        labels.append(triple["label"])
+        preds.append(triple["pred"])
+    return indices, labels, preds
 
 # manual testing
 if __name__ == "__main__":
