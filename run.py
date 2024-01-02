@@ -158,7 +158,8 @@ class Experiment(object):
             labels.append(label)
             preds.append(pred)
             ncorrect += int(pred == label)
-            print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
+            if self.debug:
+                print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
         metrics = Metrics(indices, labels, preds)
         metrics.save_results(save_path=self.config.log_path / "eval_results.json")
         print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Correct: {ncorrect} / Predicted: {len(self.pats)})")
