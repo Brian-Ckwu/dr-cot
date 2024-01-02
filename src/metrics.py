@@ -28,6 +28,10 @@ class Metrics:
         y_pred = [label_dict.get(pred, len(label_set)) for pred in self.preds]  # len(label_set) -> "OTHER"
         return confusion_matrix(y_true, y_pred, labels=range(len(label_set) + 1))
 
+    def get_indices(self, label: str, pred: str) -> list[int]:
+        """Get the indices of the given label and pred."""
+        return [index for index, label_, pred_ in zip(self.indices, self.labels, self.preds) if (label_ == label and pred_ == pred)]
+
     def save_results(self, save_path: str) -> None:
         d = {
             "accuracy": self.accuracy,
