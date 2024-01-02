@@ -40,7 +40,7 @@ class DDxDataset(object):
         df_ie_top1 = df_ie[df_ie.DIFFERENTIAL_DIAGNOSIS.apply(lambda l: l[0][0]) == df_ie.PATHOLOGY]
         if ddxs is not None:
             df_ie_top1 = df_ie_top1[df_ie_top1.PATHOLOGY.isin(ddxs)]
-        return df_ie_top1.sample(n=n, random_state=seed)
+        return df_ie_top1.sample(n=min(n, len(df_ie_top1)), random_state=seed)
     
     def get_evidence_set_of_initial_evidence(self, ie: str, field: str) -> set:
         """field: 'EVIDENCES' or 'EVIDENCES_ENG' or 'EVIDENCES_UNCONVERTED'"""
