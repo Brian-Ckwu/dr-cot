@@ -16,7 +16,7 @@ def retry_with_exponential_backoff(
     exponential_base: float = 2,
     max_retries: int = 10,
     errors: tuple = (
-        openai.error.RateLimitError, openai.error.ServiceUnavailableError, openai.error.APIError,
+        openai.RateLimitError, openai.APIError,
         google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
     ),
 ):
