@@ -1,5 +1,6 @@
 from typing import Any
 from argparse import Namespace
+from colorama import Fore, Style
 
 def dict_to_namespace(d: dict) -> Namespace:
     """Converts a dictionary to a namespace recursively."""
@@ -18,6 +19,16 @@ def index_label_pred_to_lists(triples: list[dict[str, Any]]) -> tuple[list[int],
         labels.append(triple["label"])
         preds.append(triple["pred"])
     return indices, labels, preds
+
+def display_dialogue(dial: list[dict[str, str]]) -> None:
+    """Display the dialogue in a human-readable format."""
+    for utter in dial:
+        if utter["role"] == "patient":
+            print(f"Patient: {utter['utterance']}")
+        elif utter["role"] == "doctor":
+            print(f"{Fore.BLUE + Style.BRIGHT}Doctor: {utter['utterance']}{Style.RESET_ALL}")
+        else:
+            raise ValueError(f"Unknown role: {utter['role']}")
 
 # manual testing
 if __name__ == "__main__":
