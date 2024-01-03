@@ -1,7 +1,11 @@
 import os
+import ssl
+import json
 import time
 import yaml
+import urllib.request
 from typing import Any, Union
+from pathlib import Path
 from argparse import Namespace
 from abc import ABC, abstractmethod
 from colorama import Fore, Style
@@ -18,6 +22,7 @@ def retry_with_exponential_backoff(
     errors: tuple = (
         openai.RateLimitError, openai.APIError,
         google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
+        urllib.error.HTTPError
     ),
 ):
     """Retry a function with exponential backoff."""
@@ -133,12 +138,85 @@ class OpenAIModel(Model):
         )
         return completion.choices[0].text
 
+class LlamaModel(Model):
+    completion_models = {"Llama-2-7b", "Llama-2-13b", "Llama-2-70b"}
+    chatcompletion_models = {"Llama-2-7b-chat", "Llama-2-13b-chat", "Llama-2-70b-chat"}
+    api_urls = {
+        "Llama-2-7b": "https://Llama-2-7b-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/completions",
+        "Llama-2-13b": "https://Llama-2-13b-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/completions",
+        "Llama-2-70b": "https://Llama-2-70b-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/completions",
+        "Llama-2-7b-chat": "https://Llama-2-7b-chat-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/chat/completions",
+        "Llama-2-13b-chat": "https://Llama-2-13b-chat-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/chat/completions",
+        "Llama-2-70b-chat": "https://Llama-2-70b-chat-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/chat/completions"
+    }
 
-class LocalModel(Model):
-    """A model that uses a local model (e.g., LLaMA) to generate a response to a given prompt."""
+    def __init__(
+        self,
+        config: Union[dict, Namespace]
+    ):
+        if isinstance(config, Namespace):
+            config = vars(config)
+        self.model = config["model"]
+        self.config = config
+        self.api_url = self.api_urls[self.model]
+        self.api_key = Path(f"../api_keys/azure_{self.model}.txt").read_text().strip()
+        if not self.api_key:
+            raise Exception("A key should be provided to invoke the endpoint")
+        self.headers = {'Content-Type':'application/json', 'Authorization':('Bearer '+ self.api_key)}
+        self.allowSelfSignedHttps(True) # this line is needed if you use self-signed certificate in your scoring service.
 
-    def __init__(self):
-        raise NotImplementedError
+    @retry_with_exponential_backoff
+    def generate(self, prompt: Union[str, list[dict[str, str]]]) -> str:
+        if self.model in self.completion_models:
+            if type(prompt) != str:
+                raise TypeError("Prompt must be a string for completion models.")
+            return self.base_completion(prompt)["choices"][0]["text"]
+        elif self.model in self.chatcompletion_models:
+            if type(prompt) != list:
+                raise TypeError("Prompt must be a list of messages for chat models.")
+            res = self.chat_completion(prompt)
+            assert res["choices"][0]["message"]["role"] == "assistant"
+            return res["choices"][0]["message"]["content"]
+
+    def base_completion(self, prompt: str) -> dict:
+        req_data = self.config.copy()
+        req_data["prompt"] = prompt
+        req_data.pop("model")
+        body = str.encode(json.dumps(req_data))
+        req = urllib.request.Request(self.api_url, body, self.headers)
+        try:
+            response = urllib.request.urlopen(req)
+            result = response.read()
+            return json.loads(result.decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            print("The request failed with status code: " + str(error.code))
+            # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
+            print(error.info())
+            print(error.read().decode("utf8", 'ignore'))
+            raise error
+
+    def chat_completion(self, messages: list[dict[str, str]]) -> dict:
+        req_data = self.config.copy()
+        req_data["messages"] = messages
+        req_data.pop("model")
+        body = str.encode(json.dumps(req_data))
+        req = urllib.request.Request(self.api_url, body, self.headers)
+        try:
+            response = urllib.request.urlopen(req)
+            result = response.read()
+            return json.loads(result.decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            print("The request failed with status code: " + str(error.code))
+            # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
+            print(error.info())
+            print(error.read().decode("utf8", 'ignore'))
+            raise error
+
+    @staticmethod
+    def allowSelfSignedHttps(allowed):
+        # bypass the server certificate verification on client side
+        if allowed and not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None):
+            ssl._create_default_https_context = ssl._create_unverified_context
 
 # manual testing
 if __name__ == "__main__":
