@@ -22,7 +22,7 @@ def retry_with_exponential_backoff(
     errors: tuple = (
         openai.RateLimitError, openai.APIError,
         google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
-        urllib.error.HTTPError
+        urllib.error.HTTPError, urllib.error.URLError
     ),
 ):
     """Retry a function with exponential backoff."""
@@ -149,6 +149,7 @@ class LlamaModel(Model):
         "Llama-2-13b-chat": "https://Llama-2-13b-chat-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/chat/completions",
         "Llama-2-70b-chat": "https://Llama-2-70b-chat-sbhdemo-serverless.eastus2.inference.ai.azure.com/v1/chat/completions"
     }
+    errors = (urllib.error.HTTPError, urllib.error.URLError)
 
     def __init__(
         self,
@@ -188,11 +189,8 @@ class LlamaModel(Model):
             response = urllib.request.urlopen(req)
             result = response.read()
             return json.loads(result.decode("utf-8"))
-        except urllib.error.HTTPError as error:
+        except self.errors as error:
             print("The request failed with status code: " + str(error.code))
-            # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
-            print(error.info())
-            print(error.read().decode("utf8", 'ignore'))
             raise error
 
     def chat_completion(self, messages: list[dict[str, str]]) -> dict:
@@ -205,11 +203,8 @@ class LlamaModel(Model):
             response = urllib.request.urlopen(req)
             result = response.read()
             return json.loads(result.decode("utf-8"))
-        except urllib.error.HTTPError as error:
+        except self.errors as error:
             print("The request failed with status code: " + str(error.code))
-            # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
-            print(error.info())
-            print(error.read().decode("utf8", 'ignore'))
             raise error
 
     @staticmethod
