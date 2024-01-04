@@ -118,25 +118,30 @@ class Experiment(object):
     def run(self) -> None:
         """Run the experiment with the given configuration."""
         for i, pat in self.pats.iterrows():
-            if self.debug:
-                print(f"\n===== Patient Index {i} =====\n")
-            patient_context = self.get_new_patient_context(pat)
-            self.patient_bot.reset(context=patient_context)
-            self.doctor_bot.clear_dialogue()
-            self.save_patient_profile(index=i)
-            dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
+            print(f"\n===== Patient Index {i} =====")
+            doctor_save_path = self.config.doctor_log_path / f"{i}.json"
+            if os.path.exists(doctor_save_path):
+                print(f"Skipping patient index {i} because it already exists.")
+                final_utter = json.loads(doctor_save_path.read_bytes())[-1]
+                dx = self.extract_dx(final_utter["utterance"])
+            else:
+                patient_context = self.get_new_patient_context(pat)
+                self.patient_bot.reset(context=patient_context)
+                self.doctor_bot.clear_dialogue()
+                self.save_patient_profile(index=i)
+                dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
             print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
 
     def extract_dx(self, utterance: str) -> str:
         """Extract the diagnosis from the given utterance."""
         if self.config.doctor.prompt_mode == PromptMode.STANDARD.value:
             found = re.findall(f"{self.doctor_bot.final_diagnosis_msg} (.*)", utterance)
-            if len(found) == 1:
-                utterance = found[0].strip().rstrip('.')
         elif self.config.doctor.prompt_mode == PromptMode.DRCoT.value:
             found = re.findall(f"\\[{ReasoningStep.FINAL_DIAGNOSIS.value}\\] (.*)", utterance)
-            if len(found) == 1:
-                utterance = found[0].strip().rstrip('.')
+        if len(found) == 1:
+            utterance = found[0].strip().rstrip('.')
+        else:
+            print(Fore.RED + f"Could not extract diagnosis from utterance: {utterance}" + Style.RESET_ALL)
         return utterance
 
     def evaluate(self) -> None:
