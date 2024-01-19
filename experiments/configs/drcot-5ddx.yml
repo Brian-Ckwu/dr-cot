@@ -6,8 +6,8 @@ data:
   csv_path: "./ddxplus/release_test_patients.csv"
   pathology_info_path: "./ddxplus/release_conditions.json"
   evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
-sample_size: 5
-initial_evidence: "cough"
+sample_size: 10
+initial_evidence: "shortness of breath" # [cough, shortness of breath, nasal congestion]
 
 patient:
   config_path: "./prompts/patient/standard.json"
@@ -20,7 +20,7 @@ doctor:
   shots_paths:
     - "./prompts/doctor/shots/cough_to_influenza.json"
     - "./prompts/doctor/shots/cough_to_COPD.json"
-  ask_turns: 8
+  ask_turns: 7
   max_ddx: 5
   model_config:
     model: "gpt-3.5-turbo-16k"

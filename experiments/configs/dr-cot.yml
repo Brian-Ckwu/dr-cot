@@ -1,28 +1,66 @@
-name: drcot-1shot-cough
+name: 2shot_patient-palm2
 log_path: "./experiments"
 seed: 1126
 
 data:
-  csv_path: "./ddxplus/release_test_patients.csv"
-  pathology_info_path: "./ddxplus/release_conditions.json"
-  evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
-sample_size: 10
-initial_evidence: "cough"
+  dataset:
+    csv_path: "./ddxplus/release_test_patients.csv"
+    pathology_info_path: "./ddxplus/release_conditions.json"
+    evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
+  sample_size: 100
+  initial_evidence: "cough"
+  possible_diagnoses:
+    - "Influenza"
+    - "GERD"
+    - "Bronchospasm / acute asthma exacerbation"
+    - "Acute COPD exacerbation / infection"
+    - "Allergic sinusitis"
+    - "Pneumonia"
 
 patient:
   config_path: "./prompts/patient/standard.json"
+  model_type: "PaLM2Model"
   model_config:
-    model: "gpt-3.5-turbo"
-    temperature: 0
-    max_tokens: 128
+    model: "models/text-bison-001"  # "gpt-3.5-turbo-instruct"
+    temperature: 0.0
+    candidate_count: 1
+    top_k: 40
+    top_p: 0.95
+    max_output_tokens: 8000
+    # max_tokens: 512
+    stop_sequences:
+      - "Doctor:"
+    # stop:
 
 doctor:
-  prompt_mode: "drcot"
+  prompt_mode: "drcot" # "standard" or "drcot"
   shots_paths:
-    - "./prompts/doctor/shots/cough_to_influenza.json"
-    - "./prompts/doctor/shots/cough_to_COPD.json"
+    - "./prompts/doctor/shots/cough_to_influenza_6ddx.json"
+    - "./prompts/doctor/shots/cough_to_COPD_6ddx.json"
   ask_turns: 8
+  max_ddx: 50
+  prompt_format: "raw_text" # "raw_text" or "json"
+  model_type: "LlamaModel" # "OpenAIModel, PaLM2Model"
   model_config:
-    model: "gpt-3.5-turbo"
-    temperature: 0
+    # # PaLM2Model configs
+    # model: "models/text-bison-001"
+    # temperature: 0.0
+    # candidate_count: 1
+    # top_k: 40
+    # top_p: 0.95
+    # max_output_tokens: 8000
+    # stop_sequences:
+    #   - "Patient:"
+    # # OpenAIModel configs
+    # model: "gpt-3.5-turbo-instruct"
+    # temperature: 0.0
+    # max_tokens: 512
+    # stop:
+    #   - "Patient:"
+    # LlamaModel configs (https://learn.microsoft.com/en-us/azure/ai-studio/how-to/deploy-models-llama?tabs=azure-studio)
+    model: "Llama-2-70b"
     max_tokens: 512
+    temperature: 0.0
+    stop:
+      - "Patient:"
+      - "<History taking>"

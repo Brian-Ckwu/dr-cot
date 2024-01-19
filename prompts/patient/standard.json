@@ -1,8 +1,8 @@
 {
-    "prefix_instruction": "Act as a patient and respond to the doctor's question according to the patient profile delimited by triple backticks.",
+    "prefix_instruction": "Act as a patient and respond to the doctor's question according to the patient profile delimited by double quotes.",
     "shots": [
         {
-            "context": "patient profile: ```Sex: Male, Age: 47\n\n- I feel pain.\n- The pain is:\n* tugging\n* burning\n- The pain locations are:\n* back of head\n* top of the head\n* temple(R)\n- On a scale of 0-10, the pain intensity is 4\n- On a scale of 0-10, the pain’s location precision is 8\n- On a scale of 0-10, the pace at which the pain appear is 5\n- I feel like I am about to faint.\n- I feel lightheaded and dizzy.\n- I feel palpitations.\n\n- I feel anxious.\n- I regularly drink coffee or tea.\n- I regularly consume energy drinks.\n- I regularly take stimulant drugs.\n- I have recently taken decongestants or substances that may have stimulant effects```",
+            "context": "patient profile: \"\"Sex: Male, Age: 47\n- I feel pain.\n- The pain is:\n* tugging\n* burning\n- The pain locations are:\n* back of head\n* top of the head\n* temple(R)\n- On a scale of 0-10, the pain intensity is 4\n- On a scale of 0-10, the pain’s location precision is 8\n- On a scale of 0-10, the pace at which the pain appear is 5\n- I feel like I am about to faint.\n- I feel lightheaded and dizzy.\n- I feel palpitations.\n- I feel anxious.\n- I regularly drink coffee or tea.\n- I regularly consume energy drinks.\n- I regularly take stimulant drugs.\n- I have recently taken decongestants or substances that may have stimulant effects\"\"",
             "dialogue": [
                 {
                     "role": "doctor",
@@ -30,11 +30,11 @@
                 },
                 {
                     "role": "doctor",
-                    "utterance": "Do you feel depressed?"
+                    "utterance": "Where is your pain located?"
                 },
                 {
                     "role": "patient",
-                    "utterance": "No."
+                    "utterance": "The pain is located at the back of my head, the top of my head, and my right temple."
                 },
                 {
                     "role": "doctor",
@@ -46,11 +46,19 @@
                 },
                 {
                     "role": "doctor",
-                    "utterance": "Where is your pain located?"
+                    "utterance": "How intense is the pain?"
                 },
                 {
                     "role": "patient",
-                    "utterance": "The pain is located at the back of my head, the top of my head, and my right temple."
+                    "utterance": "On a scale of 0-10, the pain intensity is 4."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have any other symptoms?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm not sure. Could you be more specific?"
                 },
                 {
                     "role": "doctor",
@@ -70,11 +78,11 @@
                 },
                 {
                     "role": "doctor",
-                    "utterance": "How intense is the pain?"
+                    "utterance": "Do you feel depressed?"
                 },
                 {
                     "role": "patient",
-                    "utterance": "On a scale of 0-10, the pain intensity is 4."
+                    "utterance": "No."
                 },
                 {
                     "role": "doctor",
@@ -91,19 +99,80 @@
                 {
                     "role": "patient",
                     "utterance": "No."
+                }
+            ]
+        },
+        {
+            "context": "patient profile: \"\"Sex: Male, Age: 45\n- I live with 4 or more people.\n- I attend or work in a daycare.\n- I have had significantly increased sweating.\n- I have pain somewhere related to my reason for consulting.\n- I smoke cigarettes.\n- I have a fever (either felt or measured with a thermometer).\n- I have a sore throat.\n- I have nasal congestion or a clear runny nose.\n- I have a cough.\n- I am exposed to secondhand cigarette smoke on a daily basis.\n- On a scale of 0-10, the pain intensity is 6\n- On a scale of 0-10, the pain's location precision is 3\n- On a scale of 0-10, the pace at which the pain appear is 1\n- The pain is:\n* tedious\n* sensitive\n- The pain locations are:\n* occiput\n* temple(L)\n- The pain radiates to these locations:\n* nowhere\"\"",
+            "dialogue": [
+                {
+                    "role": "doctor",
+                    "utterance": "How may I help you today?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I have nasal congestion or a clear runny nose."
                 },
                 {
                     "role": "doctor",
-                    "utterance": "Have you had chills or shivers?"
+                    "utterance": "Have you been coughing?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "Yes."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Does your cough come with sputum?"
                 },
                 {
                     "role": "patient",
                     "utterance": "No."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have a sore throat?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "Yes."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have any other medical conditions?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "I'm not sure. Could you be more specific?"
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have a fever?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "Yes."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have difficulty breathing?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "No."
+                },
+                {
+                    "role": "doctor",
+                    "utterance": "Do you have a headache?"
+                },
+                {
+                    "role": "patient",
+                    "utterance": "Yes."
                 }
             ]
         }
     ],
     "context": "",
     "dialogue": [],
-    "suffix_instruction": "Answer with no if the symptom is not recorded in the patient profile."
+    "suffix_instruction": ""
 }
