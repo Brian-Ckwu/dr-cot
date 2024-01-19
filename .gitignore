@@ -3,3 +3,4 @@ secrets
 ddxplus
 *.ipynb
 experiments/*
+*tmp*
