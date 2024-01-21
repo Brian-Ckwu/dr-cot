@@ -1,5 +1,5 @@
 {
-    "instruction": "",
+    "instruction": "Determine the polarity (positive or negative) of the symptom from the question-answering pair.",
     "shots": [
         {
             "question": "How may I help you today?",
