@@ -76,3 +76,66 @@ class Dialogue(object):
         # reset dialogue state
         if is_json:
             self.parse_dialogue()
+
+class MultiStageDialogue(Dialogue):
+    """The dialogue between the PatientBot and the DoctorBot in the multi-stage DR-CoT setting.
+
+    Format:
+    [
+        {
+            "role": PATIENT,
+            "utterance": str  # response to the doctor's question
+        }
+        {
+            "role": DOCTOR, # Role.value
+            "utterance": {
+                "symptom_state": {
+                    "positive": list[str],
+                    "negative": list[str]
+                },
+                "ddx": list[str],  # "ddx score": list[float], maybe can consider
+                "question": str
+            }
+        },
+        ...
+    ]
+    """
+
+    def __init__(self, data: list[dict[str, str]] = []):
+        self.data = data
+        self.last_question = None
+
+    def add_utterance(self, role: Role, utterance: str):
+        # raise an error to indicate that this is deprecated in MultiStageDialogue
+        raise NameError("Use add_patient_utterance() or add_doctor_utterance() instead.")
+
+    def add_patient_utterance(
+        self,
+        utterance: str
+    ) -> None:
+        """Add a patient utterance to the dialogue."""
+        self.data.append({
+            "role": Role.PATIENT.value,
+            "utterance": utterance
+        })
+
+    def add_doctor_utterance(
+        self,
+        pos_syms: list[str],
+        neg_syms: list[str],
+        ddx: list[str],
+        question: str
+    ) -> None:
+        """Add a doctor utterance to the dialogue."""
+        self.data.append({
+            "role": Role.DOCTOR.value,
+            "utterance": {
+                "symptom_state": {
+                    "positive": pos_syms.copy(),
+                    "negative": neg_syms.copy()
+                },
+                "ddx": ddx.copy(),
+                "question": question
+            }
+        })
+        self.last_question = question
