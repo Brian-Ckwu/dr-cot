@@ -1,0 +1,18 @@
+[Instruction] (optional)
+
+
+[Symptoms_1]
+[DDX_1]
+[Q_1]
+
+
+...
+
+
+[Symptoms_k]
+[DDX_k]
+[Q_k]
+
+
+[Symptoms_test]
+[DDX_test]

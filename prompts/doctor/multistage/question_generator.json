@@ -1,0 +1,103 @@
+{
+    "instruction": "Act as a doctor taking a medical history from a patient. Ask the most critical question to narrow down the differential diagnosis.",
+    "shots": [
+        {
+            "positive": ["cough"],
+            "negative": [],
+            "ddx": [
+                "Pneumonia",
+                "Influenza",
+                "GERD",
+                "Bronchospasm / acute asthma exacerbation",
+                "Acute COPD exacerbation / infection",
+                "Allergic sinusitis"
+            ],
+            "q": "Do you have a fever?"
+        },
+        {
+            "positive": ["cough", "fever"],
+            "negative": [],
+            "ddx": [
+                "Pneumonia",
+                "Influenza"
+            ],
+            "q": "Do you have difficulty breathing?"
+        },
+        {
+            "positive": ["cough", "fever"],
+            "negative": ["shortness of breath"],
+            "ddx": [
+                "Influenza",
+                "Pneumonia"
+            ],
+            "q": "Do you have a sore throat?"
+        },
+        {
+            "positive": ["cough", "fever", "sore throat"],
+            "negative": ["shortness of breath"],
+            "ddx": [
+                "Influenza"
+            ],
+            "q": "Do you have diffuse (widespread) muscle pain or soreness?"
+        },
+        {
+            "positive": ["cough", "fever", "sore throat", "diffuse muscle pain"],
+            "negative": ["shortness of breath"],
+            "ddx": [
+                "Influenza"
+            ],
+            "q": "Do you feel extremely tired or fatigued?"
+        },
+        {
+            "positive": ["cough"],
+            "negative": [],
+            "ddx": [
+                "Pneumonia",
+                "Influenza",
+                "GERD",
+                "Bronchospasm / acute asthma exacerbation",
+                "Acute COPD exacerbation / infection",
+                "Allergic sinusitis"
+            ],
+            "q": "Do you have difficulty breathing?"
+        },
+        {
+            "positive": ["cough", "dyspnea"],
+            "negative": [],
+            "ddx": [
+                "Pneumonia",
+                "Bronchospasm / acute asthma exacerbation",
+                "Acute COPD exacerbation / infection"
+            ],
+            "q": "Do you have fever?"
+        },
+        {
+            "positive": ["cough", "dyspnea"],
+            "negative": ["fever"],
+            "ddx": [
+                "Bronchospasm / acute asthma exacerbation",
+                "Acute COPD exacerbation / infection",
+                "Pneumonia"
+            ],
+            "q": "Do you wheeze when you breathe?"
+        },
+        {
+            "positive": ["cough", "dyspnea", "wheezing"],
+            "negative": ["fever"],
+            "ddx": [
+                "Acute COPD exacerbation / infection",
+                "Bronchospasm / acute asthma exacerbation"
+            ],
+            "q": "Do you have past history of COPD?"
+        },
+        {
+            "positive": ["cough", "dyspnea", "wheezing", "COPD history"],
+            "negative": ["fever"],
+            "ddx": [
+                "Acute COPD exacerbation / infection",
+                "Bronchospasm / acute asthma exacerbation"
+            ],
+            "q": "Do you have past history of allergy or asthma?"
+        }
+    ]
+}
