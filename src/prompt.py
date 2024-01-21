@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from model import PaLM2Model
 
 class Prompt(ABC):
+    ITEM_SEPARATOR = "; "
     LINE_SEPARATOR = "\n"
     SHOT_SEPARATOR = "\n\n\n"
 
@@ -109,6 +110,9 @@ class SymptomExtractorPrompt(Prompt):
         return self.SHOT_SEPARATOR.join(chunks) + self.LINE_SEPARATOR
 
 class DDXPredictorPrompt(Prompt):
+    POSITIVE_CUE = "Positive clinical findings: "
+    NEGATIVE_CUE = "Negative clinical findings: "
+    DDX_CUE = "Ranked differential diagnosis: "
 
     def __init__(
         self,
@@ -118,7 +122,7 @@ class DDXPredictorPrompt(Prompt):
         super().__init__(instruction, shots)
 
     def get_minimal_template(self) -> str:
-        """Returns the prompt text built by minimal template.
+        """Returns the prefix prompt text built by minimal template.
 
         Format:
             [Instruction (optional)]
@@ -140,11 +144,52 @@ class DDXPredictorPrompt(Prompt):
         # Few-shot examples
         if self.shots:
             for shot in self.shots:
-                raise NotImplementedError
-        # Test example
-        raise NotImplementedError
-        chunks.append(chunk)
+                pos = self.ITEM_SEPARATOR.join(shot["positive"]) if shot["positive"] else "None"
+                neg = self.ITEM_SEPARATOR.join(shot["negative"]) if shot["negative"] else "None"
+                ddx = self.ITEM_SEPARATOR.join(shot["ddx"])
+                chunk = self.LINE_SEPARATOR.join([pos, neg, ddx])
+                chunks.append(chunk)
         return self.SHOT_SEPARATOR.join(chunks)        
+
+    def get_minimal_prompt(self, pos: list[str], neg: list[str]) -> str:
+        chunks = [
+            self.minimal_template,
+            self.LINE_SEPARATOR.join([
+                self.ITEM_SEPARATOR.join(pos),
+                self.ITEM_SEPARATOR.join(neg)
+            ])
+        ]
+        return self.SHOT_SEPARATOR.join(chunks) + self.LINE_SEPARATOR
+
+    def get_semantic_template(self) -> str:
+        """Returns the prefix prompt text built by semantic template (containing semantic cues)."""
+        chunks = list()
+        # Instruction
+        if self.instruction:
+            chunks.append(self.instruction)
+        # Few-shot examples
+        if self.shots:
+            for shot in self.shots:
+                pos = self.ITEM_SEPARATOR.join(shot["positive"]) if shot["positive"] else "None"
+                neg = self.ITEM_SEPARATOR.join(shot["negative"]) if shot["negative"] else "None"
+                ddx = self.ITEM_SEPARATOR.join(shot["ddx"])
+                chunk = self.LINE_SEPARATOR.join([
+                    self.POSITIVE_CUE + pos,
+                    self.NEGATIVE_CUE + neg,
+                    self.DDX_CUE + ddx
+                ])
+                chunks.append(chunk)
+        return self.SHOT_SEPARATOR.join(chunks)
+
+    def get_semantic_prompt(self, pos: list[str], neg: list[str]) -> str:
+        chunks = [
+            self.semantic_template,
+            self.LINE_SEPARATOR.join([
+                self.POSITIVE_CUE + self.ITEM_SEPARATOR.join(pos),
+                self.NEGATIVE_CUE + self.ITEM_SEPARATOR.join(neg)
+            ])
+        ]
+        return self.SHOT_SEPARATOR.join(chunks) + self.LINE_SEPARATOR
 
 class QuestionGeneratorPrompt(Prompt):
 
@@ -158,29 +203,6 @@ class QuestionGeneratorPrompt(Prompt):
 
 # Unit tests
 if __name__ == "__main__":
-    se_prompt_text = json.loads(Path("../prompts/doctor/multistage/symptom_extractor.json").read_text())
-    se_prompt = SymptomExtractorPrompt(**se_prompt_text)
-
-    # Test cases
-    testcases = [
-        {
-            'q': "Do you have past history of allergy or asthma?",
-            'a': "Yes.",
-        },
-        {
-            'q': "Do you have past history of COPD?",
-            'a': "No."
-        },
-        {
-            'q': "How may I help you today?",
-            'a': "I feel dizzy recently."
-        }
-    ]
-    q, a = testcases[2]['q'], testcases[2]['a']
-    se_minimal_prompt = se_prompt.get_minimal_prompt(q, a)
-    se_semantic_prompt = se_prompt.get_semantic_prompt(q, a)
-
-    # LLM
     llm = PaLM2Model(config={
         "model": "models/text-bison-001",
         "temperature": 0.0,
@@ -190,7 +212,15 @@ if __name__ == "__main__":
         "max_output_tokens": 100,
         "stop_sequences": [SymptomExtractorPrompt.LINE_SEPARATOR]
     })
-    minimal_res = llm.generate(prompt=se_minimal_prompt)
-    semantic_res = llm.generate(prompt=se_semantic_prompt)
-    print(f"Response (from minimal prompt): {minimal_res}")
-    print(f"Response (from semantic prompt): {semantic_res}")
+    ddx_prompt_text = json.loads(Path("../prompts/doctor/multistage/ddx_predictor.json").read_text())
+    ddx_prompt = DDXPredictorPrompt(**ddx_prompt_text)
+
+    pos = ["cough", "chest pain"]
+    neg = ["fever"]
+    ddx_minimal_prompt = ddx_prompt.get_minimal_prompt(pos, neg)
+    ddx_semantic_prompt = ddx_prompt.get_semantic_prompt(pos, neg)
+
+    minimal_res = llm.generate(prompt=ddx_minimal_prompt)
+    semantic_res = llm.generate(prompt=ddx_semantic_prompt)
+    print(f"Minimal response: {minimal_res}")
+    print(f"Semantic response: {semantic_res}")
