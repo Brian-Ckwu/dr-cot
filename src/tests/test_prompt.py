@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 from model import PaLM2Model
-from prompt import SymptomExtractorPrompt
+from prompt import SymptomExtractorPrompt, DDXPredictorPrompt
 
 class TestSymptomExtractorPrompt(unittest.TestCase):
 
@@ -71,6 +71,39 @@ class TestSymptomExtractorPrompt(unittest.TestCase):
         semantic_pol, semantic_sym = self.parse_semantic_response(semantic_res)
         self.assertEqual(semantic_pol, "positive")
         self.assertEqual(semantic_sym, "dizziness")
+
+class TestDDXPredictorPrompt(unittest.TestCase):
+
+    def setUp(self):
+        self.llm = PaLM2Model(config={
+            "model": "models/text-bison-001",
+            "temperature": 0.0,
+            "candidate_count": 1,
+            "top_k": 40,
+            "top_p": 0.95,
+            "max_output_tokens": 100,
+            "stop_sequences": [SymptomExtractorPrompt.LINE_SEPARATOR]
+        })
+        ddx_prompt_text = json.loads(Path("../prompts/doctor/multistage/ddx_predictor.json").read_text())
+        self.ddx_prompt = DDXPredictorPrompt(**ddx_prompt_text)
+
+    def test_ddx_set(self):
+        ddx_set = {
+            "Pneumonia",
+            "Influenza",
+            "GERD",
+            "Bronchospasm / acute asthma exacerbation",
+            "Acute COPD exacerbation / infection",
+            "Allergic sinusitis"
+        }
+        pos = ["cough", "chest pain"]
+        neg = ["fever"]
+        ddx_semantic_prompt = self.ddx_prompt.get_semantic_prompt(pos, neg)
+        semantic_res = self.llm.generate(prompt=ddx_semantic_prompt)
+        ddx = semantic_res[len(DDXPredictorPrompt.DDX_CUE):].split("; ")
+        # check that each ddx is in the ddx set
+        for d in ddx:
+            self.assertIn(d, ddx_set)
 
 if __name__ == "__main__":
     unittest.main()
