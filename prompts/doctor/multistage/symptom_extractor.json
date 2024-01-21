@@ -1,0 +1,65 @@
+{
+    "instruction": "",
+    "shots": [
+        {
+            "question": "How may I help you today?",
+            "answer": "I have a cough.",
+            "symptom": "positive: cough"
+        },
+        {
+            "question": "Do you have a fever?",
+            "answer": "Yes, I have a fever.",
+            "symptom": "positive: fever"
+        },
+        {
+            "question": "Did you have difficulty breathing?",
+            "answer": "No, I did not have difficulty breathing.",
+            "symptom": "negative: shortness of breath"
+        },
+        {
+            "question": "Do you have a sore throat?",
+            "answer": "Yes, I have a sore throat.",
+            "symptom": "positive: sore throat"
+        },
+        {
+            "question": "Do you have diffuse (widespread) muscle pain or soreness?",
+            "answer": "Yes, I have diffuse muscle soreness.",
+            "symptom": "positive: diffuse muscle pain"
+        },
+        {
+            "question": "Do you feel extremely tired or fatigued?",
+            "answer": "Yes, I feel extremely tired.",
+            "symptom": "positive: extreme fatigue"
+        },
+        {
+            "question": "How may I help you today?",
+            "answer": "I have abdominal pain.",
+            "symptom": "positive: abdominal pain"
+        },
+        {
+            "question": "Do you have difficulty breathing?",
+            "answer": "Yes, I have difficulty breathing.",
+            "symptom": "positive: dyspnea"
+        },
+        {
+            "question": "Do you have fever?",
+            "answer": "No, I do not.",
+            "symptom": "negative: fever"
+        },
+        {
+            "question": "Do you wheeze when you breathe?",
+            "answer": "Yes.",
+            "symptom": "positive: wheezing"
+        },
+        {
+            "question": "Do you have past history of COPD?",
+            "answer": "Yes, I have past history of COPD.",
+            "symptom": "positive: COPD history"
+        },
+        {
+            "question": "Do you have past history of allergy or asthma?",
+            "answer": "No.",
+            "symptom": "negative: allergy or asthma"
+        }
+    ]
+}

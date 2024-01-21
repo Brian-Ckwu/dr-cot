@@ -1,0 +1,18 @@
+[Instruction] (optional)
+
+
+[Question_1]
+[Answer_1]
+[Symptom_1]
+
+
+...
+
+
+[Question_k]
+[Answer_k]
+[Symptom_k]
+
+
+[Question_test]
+[Answer_test]
