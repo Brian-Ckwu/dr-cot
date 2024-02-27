@@ -173,12 +173,18 @@ class LlamaModel(Model):
                 raise TypeError("Prompt must be a string for completion models.")
             return self.base_completion(prompt)["choices"][0]["text"]
         elif self.model in self.chatcompletion_models:
-            if type(prompt) != list:
-                raise TypeError("Prompt must be a list of messages for chat models.")
+            if type(prompt) == str:
+                prompt = [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
             res = self.chat_completion(prompt)
             assert res["choices"][0]["message"]["role"] == "assistant"
             return res["choices"][0]["message"]["content"]
 
+    @retry_with_exponential_backoff
     def base_completion(self, prompt: str) -> dict:
         req_data = self.config.copy()
         req_data["prompt"] = prompt
@@ -190,9 +196,10 @@ class LlamaModel(Model):
             result = response.read()
             return json.loads(result.decode("utf-8"))
         except self.errors as error:
-            print("The request failed with status code: " + str(error.code))
+            print("The request failed with status code: " + str(error))
             raise error
 
+    @retry_with_exponential_backoff
     def chat_completion(self, messages: list[dict[str, str]]) -> dict:
         req_data = self.config.copy()
         req_data["messages"] = messages
@@ -204,7 +211,7 @@ class LlamaModel(Model):
             result = response.read()
             return json.loads(result.decode("utf-8"))
         except self.errors as error:
-            print("The request failed with status code: " + str(error.code))
+            print("The request failed with status code: " + str(error))
             raise error
 
     @staticmethod

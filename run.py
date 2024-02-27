@@ -154,7 +154,8 @@ class Experiment(object):
         for i, pat in self.pats.iterrows():
             filepath = self.config.doctor_log_path / f"{i}.json"
             if not filepath.exists():
-                raise ValueError(f"File {filepath} does not exist.")
+                # print(f"File {filepath} does not exist.")
+                continue
             final_utter = json.loads(filepath.read_bytes())[-1]
             if not final_utter["role"] == Role.DOCTOR.value:
                 raise ValueError(f"Final utterance is not from doctor.")
@@ -168,13 +169,31 @@ class Experiment(object):
                 print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
         metrics = Metrics(indices, labels, preds)
         metrics.save_results(save_path=self.config.log_path / "eval_results.json")
-        print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Correct: {ncorrect} / Predicted: {len(self.pats)})")
+        print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Correct: {ncorrect} / Predicted: {len(preds)})")
+
+class MultiStageExperiment(Experiment):
+
+    def __init__(self, config: Namespace, debug: bool = False, api_interval: float = 1.0) -> None:
+        super().__init__(config, debug, api_interval)
+
+    def initialize_doctor(self, possible_diagnoses: list[str]) -> MultiStageDoctorBot:
+        llm = getattr(model, self.config.doctor.model_type)(config=self.config.doctor.model_config)
+        return MultiStageDoctorBot(
+            llm=llm,
+            prompts=yaml.safe_load(Path(self.config.doctor.prompt_path).read_text()),
+            dxs=possible_diagnoses,
+            debug=self.debug
+        )
+
+    def extract_dx(self, utterance: str) -> str:
+        """Extract the diagnosis from the given utterance."""
+        return utterance["ranked_ddx"][0]
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
 
     parser.add_argument("--config_path", type=Path, required=True)
-    parser.add_argument("--api_interval", type=float, default=1)
+    parser.add_argument("--api_interval", type=float, default=0)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--evaluate", action="store_true")
 
@@ -188,7 +207,10 @@ if __name__ == "__main__":
     # copy config file to output directory
     config.log_path = Path(config.log_path) / config.doctor.model_config.model.split('/')[-1] / config.doctor.prompt_mode / config.data.initial_evidence / config.name
     config.log_path.mkdir(parents=True, exist_ok=True)
-    experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
+    if config.doctor.prompt_mode == "multistage":
+        experiment = MultiStageExperiment(config, debug=args.debug, api_interval=args.api_interval)
+    else:
+        experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
     if args.evaluate:
         experiment.evaluate()
     else:

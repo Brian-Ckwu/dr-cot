@@ -89,11 +89,9 @@ class MultiStageDialogue(Dialogue):
         {
             "role": DOCTOR, # Role.value
             "utterance": {
-                "symptom_state": {
-                    "positive": list[str],
-                    "negative": list[str]
-                },
-                "ddx": list[str],  # "ddx score": list[float], maybe can consider
+                "extracted_finding": str,
+                "findings_summary": str,
+                "ranked_ddx": list[str],
                 "question": str
             }
         },
@@ -121,8 +119,8 @@ class MultiStageDialogue(Dialogue):
 
     def add_doctor_utterance(
         self,
-        pos_syms: list[str],
-        neg_syms: list[str],
+        s: str,
+        ss: str,
         ddx: list[str],
         question: str
     ) -> None:
@@ -130,12 +128,25 @@ class MultiStageDialogue(Dialogue):
         self.data.append({
             "role": Role.DOCTOR.value,
             "utterance": {
-                "symptom_state": {
-                    "positive": pos_syms.copy(),
-                    "negative": neg_syms.copy()
-                },
-                "ddx": ddx.copy(),
+                "extracted_finding": s,
+                "findings_summary": ss,
+                "ranked_ddx": ddx,
                 "question": question
             }
         })
         self.last_question = question
+
+    def text(self) -> str:
+        sents = list()
+        for turn in self.data:
+            if turn["role"] == Role.PATIENT.value:
+                utter = turn["utterance"]
+            elif turn["role"] == Role.DOCTOR.value:
+                utter = turn["utterance"]["question"]
+            else:
+                raise ValueError("Invalid role.")
+            sents.append(f"{turn['role']}: {utter}")
+        return '\n'.join(sents)
+
+    def save_dialogue(self, save_path: Path, is_json: bool) -> None:
+        save_path.write_text(json.dumps(self.data, indent=4))

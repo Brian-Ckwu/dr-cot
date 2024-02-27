@@ -1,0 +1,35 @@
+extract_finding: |
+  The following is a question-answer pair from a doctor and a patient.
+
+  doctor: {}
+  patient: {}
+
+  Please summarize the clinical findings from this pair by converting it into a single sentence. Please only output the summary sentence by the following JSON format: {{"summary_sentence": <output>}}.
+
+merge_findings: |
+  The following is the original summary of clinical findings and a new clinical finding from a patient.
+
+  original summary: {}
+  new clinical finding: {}
+
+  Please provide a new summary of clinical findings by merging the original summary with the new clinical finding. Please only output the new summary by the following JSON format: {{"merged_summary": <output>}}.
+
+predict_diagnoses: |
+  The following is the summary of clinical findings from a patient.
+
+  summary (enclosed by <<< and >>>): <<<{}>>>
+
+  Please provide a list of ranked differential diagnosis based on the summary of clinical findings. Please output about 10 differential diagnoses by the following JSON format: {{"ranked_differential_diagnosis": [list_of_differential_diagnosis]}}.
+
+ask_question: |
+  The dialogue below is part of the history taking process between a doctor and a patient.
+
+  {}
+
+  The following is the summary of clinical findings and differential diagnosis from the patient based on the dialogue.
+
+  summary (enclosed by <<< and >>>): <<<{}>>>
+  differential diagnosis (enclosed by < and > and separated by semicolons): <{}>
+
+  Act as a doctor and ask the patient the most critical yes / no question to refine the differential diagnosis.
+  Do not ask questions that are already asked, and please only output the yes / no question by the following JSON format: {{"question": <output>}}.

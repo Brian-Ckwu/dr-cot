@@ -4,11 +4,13 @@ import yaml
 from enum import Enum
 from typing import Any, Union
 from pathlib import Path
+from colorama import Fore, Style
 
 from .shot import Shot
 from .context import Context
-from .dialogue import Dialogue, Role
+from .dialogue import Dialogue, Role, MultiStageDialogue
 from .model import Model, OpenAIModel
+from .prompt import SymptomExtractorPrompt, DDXPredictorPrompt, QuestionGeneratorPrompt
 
 class PromptFormat(Enum):
     RAW_TEXT = "raw_text"
@@ -471,6 +473,105 @@ class DoctorBot(Bot):
             "model": self.model.config,
             "prompt": self.get_prompt()
         }
+
+class MultiStageDoctorBot(DoctorBot):
+    DX_DELIMITER = "; "
+
+    def __init__(self, llm: Model, prompts: dict[str, str], dxs: list[str] = None, debug: bool = False):
+        self.llm = llm
+        self.prompts = prompts
+        self.dialogue = MultiStageDialogue(data=list())
+        self.symptom_state = None
+        self.dxs = dxs
+        self.debug = debug
+
+    def greeting(self, utterance: str = "") -> str:
+        if utterance:
+            self.dialogue.add_patient_utterance(utterance)
+        greeting_msg = self.greeting_msg["question"]
+        self.dialogue.add_doctor_utterance(s="", ss="", ddx=[], question=greeting_msg)
+        return greeting_msg
+
+    def prompting(self, prompt: str) -> dict:
+        res = self.llm.generate(prompt)
+        if self.debug:
+            print(f"{Fore.CYAN}===== Prompt ====={Style.RESET_ALL}\n{prompt}")
+            print(f"{Fore.RED}===== Response ====={Style.RESET_ALL}\n{res}")
+        return self.parse_response(res)
+
+    def extract_finding(self, q: str, a: str) -> dict:
+        prompt = self.prompts["extract_finding"].format(q, a)
+        return self.prompting(prompt)
+
+    def merge_findings(self, s: str) -> dict:
+        if self.symptom_state is None:
+            self.symptom_state = s
+            return {"merged_summary": s}
+        prompt = self.prompts["merge_findings"].format(self.symptom_state, s)
+        d = self.prompting(prompt)
+        self.symptom_state = d["merged_summary"]
+        return d
+
+    def predict_diagnoses(self, ss: str) -> dict:
+        if self.dxs is None:
+            dxs_str = ""
+        else:
+            dxs_str = self.DX_DELIMITER.join(self.dxs)
+        prompt = self.prompts["predict_diagnoses"].format(ss, dxs_str)
+        return self.prompting(prompt)
+
+    def ask_question(self, ss: str, ddx: str) -> dict:
+        prompt = self.prompts["ask_question"].format(self.dialogue.text(), ss, ddx)
+        return self.prompting(prompt)
+
+    def ask_finding(self, utterance: str) -> str:
+        self.dialogue.add_patient_utterance(utterance)
+        ef_d = self.extract_finding(q=self.dialogue.last_question, a=utterance)
+        mf_d = self.merge_findings(s=ef_d["summary_sentence"])
+        pd_d = self.predict_diagnoses(ss=self.symptom_state)
+        ddx_str = self.DX_DELIMITER.join(pd_d["ranked_differential_diagnosis"])
+        aq_d = self.ask_question(ss=self.symptom_state, ddx=ddx_str)
+        self.dialogue.add_doctor_utterance(
+            s=ef_d["summary_sentence"],
+            ss=mf_d["merged_summary"],
+            ddx=pd_d["ranked_differential_diagnosis"],
+            question=aq_d["question"]
+        )
+        return aq_d["question"]
+
+    def make_diagnosis(self, utterance: str) -> str:
+        self.dialogue.add_patient_utterance(utterance)
+        ef_d = self.extract_finding(q=self.dialogue.last_question, a=utterance)
+        mf_d = self.merge_findings(s=ef_d["summary_sentence"])
+        pd_d = self.predict_diagnoses(ss=self.symptom_state)
+        self.dialogue.add_doctor_utterance(
+            s=ef_d["summary_sentence"],
+            ss=mf_d["merged_summary"],
+            ddx=pd_d["ranked_differential_diagnosis"],
+            question=""
+        )
+        return pd_d["ranked_differential_diagnosis"][0]
+
+    @staticmethod
+    def parse_response(res: str) -> str:
+        if res[-1] != '}':
+            res += '}'
+        json_text = '{' + re.findall(pattern=r"\{(.*?)\}", string=res, flags=re.DOTALL)[0] + '}'
+        return json.loads(json_text)
+
+    @property
+    def state(self) -> dict[str, Any]:
+        """Get the state of the bot."""
+        return {
+            "model": self.llm.config,
+            "prompts": self.prompts,
+            "dxs": self.dxs
+        }
+
+    def clear_dialogue(self) -> None:
+        """Clear the dialogue for the bot."""
+        self.dialogue = MultiStageDialogue(data=[]) # [] is necessary to create a new dialogue object
+        self.symptom_state = None
 
 # manual unit tests
 if __name__ == "__main__":
