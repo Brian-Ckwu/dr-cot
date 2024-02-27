@@ -26,7 +26,7 @@ class Experiment(object):
             seed=config.seed,
             ddxs=config.data.possible_diagnoses
         )
-        print(f"Sampled {len(self.pats)} patients of initial evidence {config.data.initial_evidence}.")
+        print(f"Sampled {len(self.pats)} patients of initial evidence {config.data.initial_evidence}: {self.pats.groupby('PATHOLOGY').size()}.")
         self.patient_bot = self.initialize_patient()
         self.doctor_bot = self.initialize_doctor(possible_diagnoses=config.data.possible_diagnoses)
         self.log_bots_info()
