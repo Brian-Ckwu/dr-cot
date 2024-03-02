@@ -24,7 +24,8 @@ class Experiment(object):
             ie=config.data.initial_evidence,
             n=config.data.sample_size,
             seed=config.seed,
-            ddxs=config.data.possible_diagnoses
+            ddxs=config.data.possible_diagnoses,
+            balance=config.data.balanced_sampling
         )
         print(f"Sampled {len(self.pats)} patients of initial evidence {config.data.initial_evidence}: {self.pats.groupby('PATHOLOGY').size()}.")
         self.patient_bot = self.initialize_patient()

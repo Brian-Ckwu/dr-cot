@@ -35,12 +35,20 @@ class DDxDataset(object):
     def __len__(self):
         return len(self.df)
     
-    def sample_patients(self, ie: str, n: int, seed: int, ddxs: list[str] = None) -> pd.DataFrame:
+    def sample_patients(self, ie: str, n: int, seed: int, ddxs: list[str] = None, balance: bool = False) -> pd.DataFrame:
         df_ie = self.df[self.df.INITIAL_EVIDENCE_ENG == ie]
         df_ie_top1 = df_ie[df_ie.DIFFERENTIAL_DIAGNOSIS.apply(lambda l: l[0][0]) == df_ie.PATHOLOGY]
         if ddxs is not None:
             df_ie_top1 = df_ie_top1[df_ie_top1.PATHOLOGY.isin(ddxs)]
-        return df_ie_top1.sample(n=min(n, len(df_ie_top1)), random_state=seed)
+        if not balance:
+            return df_ie_top1.sample(n=min(n, len(df_ie_top1)), random_state=seed)
+        else:
+            dfs = list()
+            for ddx in ddxs:
+                df_ddx = df_ie_top1[df_ie_top1.PATHOLOGY == ddx]
+                df = df_ddx.sample(n=min(n // len(ddxs), len(df_ddx)), random_state=seed)
+                dfs.append(df)
+            return pd.concat(dfs, axis=0)
     
     def get_evidence_set_of_initial_evidence(self, ie: str, field: str) -> set:
         """field: 'EVIDENCES' or 'EVIDENCES_ENG' or 'EVIDENCES_UNCONVERTED'"""
