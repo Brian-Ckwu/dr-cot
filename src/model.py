@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from colorama import Fore, Style
 
 import openai
+from openai import OpenAI
 import google.generativeai as palm
 import google.api_core.exceptions
 
@@ -110,6 +111,7 @@ class OpenAIModel(Model):
         if isinstance(config, Namespace):
             config = vars(config)
         self.config = config
+        self.client = OpenAI()
     
     def generate(self, prompt: Any) -> str:
         """Generates a response to a given prompt."""
@@ -123,7 +125,7 @@ class OpenAIModel(Model):
     @retry_with_exponential_backoff
     def chatcompletion(self, prompt: list[dict[str, str]]) -> str:
         """POST to the https://api.openai.com/v1/chat/completions endpoint."""
-        completion = openai.ChatCompletion.create(
+        completion = self.client.chat.completions.create(
             messages=prompt,
             **self.config
         )
@@ -132,7 +134,7 @@ class OpenAIModel(Model):
     @retry_with_exponential_backoff
     def completion(self, prompt: str) -> str:
         """POST to the https://api.openai.com/v1/completions endpoint."""
-        completion = openai.Completion.create(
+        completion = self.client.completions.create(
             prompt=prompt,
             **self.config
         )
