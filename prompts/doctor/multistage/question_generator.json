@@ -1,5 +1,5 @@
 {
-    "instruction": "Act as a doctor taking a medical history from a patient. Ask the most critical question to narrow down the differential diagnosis.",
+    "instruction": "Act as a doctor taking a medical history from a patient. To narrow down the differential diagnosis, ask the most critical question about a clinical finding not yet recorded.",
     "shots": [
         {
             "positive": ["cough"],
