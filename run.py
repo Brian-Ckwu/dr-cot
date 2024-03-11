@@ -136,7 +136,7 @@ class Experiment(object):
     def extract_dx(self, utterance: str) -> str:
         """Extract the diagnosis from the given utterance."""
         if self.config.doctor.prompt_mode == PromptMode.STANDARD.value:
-            found = re.findall(f"{self.doctor_bot.final_diagnosis_msg} (.*)", utterance)
+            found = re.findall(f"the most likely diagnosis is (.*)", utterance)
         elif self.config.doctor.prompt_mode == PromptMode.DRCoT.value:
             found = re.findall(f"\\[{ReasoningStep.FINAL_DIAGNOSIS.value}\\] (.*)", utterance)
         if len(found) == 1:
@@ -164,7 +164,7 @@ class Experiment(object):
             indices.append(i)
             labels.append(label)
             preds.append(pred)
-            ncorrect += int(pred == label)
+            ncorrect += int(''.join(pred.split()).upper() == ''.join(label.split()).upper())
             if self.debug:
                 print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
         metrics = Metrics(indices, labels, preds)
