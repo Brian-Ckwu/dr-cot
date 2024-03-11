@@ -189,6 +189,61 @@ class MultiStageExperiment(Experiment):
         """Extract the diagnosis from the given utterance."""
         return utterance["ranked_ddx"][0]
 
+class DxPredExperiment(Experiment):
+
+    def __init__(self, config: Namespace, debug: bool = False, api_interval: float = 1.0) -> None:
+        self.config = config
+        self.debug = debug
+        self.api_interval = api_interval
+        print(f"Loading dataset...")
+        dataset = DDxDataset(**vars(config.data.dataset))
+        self.pats = dataset.sample_patients(
+            ie=config.data.initial_evidence,
+            n=config.data.sample_size,
+            seed=config.seed,
+            ddxs=config.data.possible_diagnoses,
+            balance=config.data.balanced_sampling
+        )
+        self.prompt_template = Path(config.doctor.prompt_path).read_text()
+        self.llm: Model = getattr(model, self.config.doctor.model_type)(config=self.config.doctor.model_config)
+        print(f"Sampled {len(self.pats)} patients of initial evidence {config.data.initial_evidence}: {self.pats.groupby('PATHOLOGY').size()}.")
+
+    def make_dx_option_prompt(self) -> str:
+        return '\n'.join(self.config.data.possible_diagnoses)
+
+    def make_dx_pred_prompt(self, patient_profile: str) -> str:
+        return self.prompt_template.format(patient_profile, self.make_dx_option_prompt())
+
+    def predict_diagnosis(self, prompt: str) -> str:
+        if self.config.doctor.model_type == "OpenAIModel":
+            messages = [{"role": "user", "content": prompt}]
+            res = self.llm.generate(messages)
+            try:
+                dx = json.loads(res)["diagnosis"]
+            except KeyError:
+                return None
+        return dx
+
+    def run(self) -> None:
+        """Run the experiment with the given configuration."""
+        ncorrect = 0
+        indices = []
+        labels = []
+        preds = []
+        for i, pat in self.pats.iterrows():
+            patient_profile = self.get_new_patient_context(pat).text()
+            prompt = self.make_dx_pred_prompt(patient_profile)
+            pred = self.predict_diagnosis(prompt)
+            label = pat.PATHOLOGY
+            indices.append(i)
+            labels.append(label)
+            preds.append(pred)
+            if self.debug:
+                print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
+        metrics = Metrics(indices, labels, preds)
+        metrics.save_results(save_path=self.config.log_path / "eval_results.json")
+        print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Total samples: {len(preds)})")
+
 def parse_args() -> Namespace:
     parser = ArgumentParser()
 
@@ -209,6 +264,8 @@ if __name__ == "__main__":
     config.log_path.mkdir(parents=True, exist_ok=True)
     if config.doctor.prompt_mode == "multistage":
         experiment = MultiStageExperiment(config, debug=args.debug, api_interval=args.api_interval)
+    elif config.doctor.prompt_mode == "dxpred":
+        experiment = DxPredExperiment(config, debug=args.debug, api_interval=args.api_interval)
     else:
         experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
     if args.evaluate:
