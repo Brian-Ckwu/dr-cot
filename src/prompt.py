@@ -3,7 +3,7 @@ import random
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from .model import PaLM2Model
+from .model import GoogleModel
 
 class Prompt(ABC):
     ITEM_SEPARATOR = "; "
@@ -304,7 +304,7 @@ class QuestionGeneratorPrompt(Prompt):
 
 # Unit tests
 if __name__ == "__main__":
-    llm = PaLM2Model(config={
+    llm = GoogleModel(config={
         "model": "models/text-bison-001",
         "temperature": 0.0,
         "candidate_count": 1,

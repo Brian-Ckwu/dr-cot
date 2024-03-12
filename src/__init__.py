@@ -6,4 +6,4 @@ from .dialogue import Dialogue, Role, MultiStageDialogue
 from .utils import dict_to_namespace, index_label_pred_to_lists, display_dialogue
 from .metrics import Metrics
 from .prompt import SymptomExtractorPrompt, DDXPredictorPrompt, QuestionGeneratorPrompt
-from .model import Model, PaLM2Model, OpenAIModel, LlamaModel
+from .model import Model, GoogleModel, OpenAIModel, LlamaModel
