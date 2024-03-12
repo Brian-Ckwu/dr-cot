@@ -12,7 +12,7 @@ from colorama import Fore, Style
 
 import openai
 from openai import OpenAI
-import google.generativeai as palm
+import google.generativeai as genai
 import google.api_core.exceptions
 
 def retry_with_exponential_backoff(
@@ -67,8 +67,8 @@ class Model(ABC):
         """Generates a response to a given prompt."""
         raise NotImplementedError
 
-class PaLM2Model(Model):
-    """A model that uses PaLM2 to generate a response to a given prompt."""
+class GoogleModel(Model):
+    """A model that uses Google APIs to generate a response to a given prompt."""
     chatcompletion_models = set()
     completion_models = {"models/text-bison-001"}
 
@@ -76,27 +76,39 @@ class PaLM2Model(Model):
         self,
         config: Union[dict, Namespace],
     ):
-        palm.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
         if isinstance(config, Namespace):
             config = vars(config)
         self.config = config
+        self.model_name = self.config.pop("model")
+        self.model = genai.GenerativeModel(
+            model_name=self.model_name,
+            generation_config=self.config,
+            safety_settings=[
+                {
+                    "category": "HARM_CATEGORY_HARASSMENT",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_HATE_SPEECH",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    "threshold": "BLOCK_NONE"
+                },
+                {
+                    "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    "threshold": "BLOCK_NONE"
+                }
+            ]
+        )
 
     @retry_with_exponential_backoff
     def generate(self, prompt: str) -> str:
         """Generate a response to a given prompt."""
-        response = palm.generate_text(
-            **self.config,
-            prompt=prompt,
-            safety_settings=[  # set all safety settings to 4 (no restrictions)
-                {"category": "HARM_CATEGORY_DEROGATORY", "threshold": 4},
-                {"category": "HARM_CATEGORY_TOXICITY", "threshold": 4},
-                {"category": "HARM_CATEGORY_VIOLENCE", "threshold": 4},
-                {"category": "HARM_CATEGORY_SEXUAL", "threshold": 4},
-                {"category": "HARM_CATEGORY_MEDICAL", "threshold": 4},
-                {"category": "HARM_CATEGORY_DANGEROUS", "threshold": 4}
-            ]
-        )
-        return response.result
+        response = self.model.generate_content(prompt)
+        return response.text
 
 class OpenAIModel(Model):
     """A model that uses an API (e.g., OpenAI APIs) to generate a response to a given prompt."""

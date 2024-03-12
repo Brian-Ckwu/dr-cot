@@ -218,10 +218,13 @@ class DxPredExperiment(Experiment):
         if self.config.doctor.model_type == "OpenAIModel":
             messages = [{"role": "user", "content": prompt}]
             res = self.llm.generate(messages)
-            try:
-                dx = json.loads(res)["diagnosis"]
-            except KeyError:
-                return None
+        elif self.config.doctor.model_type == "GoogleModel":
+            res = self.llm.generate(prompt)
+        # Parse response
+        try:
+            dx = json.loads(res)["diagnosis"]
+        except KeyError:
+            return None
         return dx
 
     def run(self) -> None:
