@@ -48,7 +48,7 @@ def retry_with_exponential_backoff(
                 # Increment the delay
                 delay *= exponential_base
                 # Sleep for the delay
-                print(Fore.YELLOW + f"Error encountered. Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
+                print(Fore.YELLOW + f"Error encountered ({e}). Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
                 time.sleep(delay)
             # Raise exceptions for any errors not specified
             except Exception as e:
@@ -100,7 +100,7 @@ class PaLM2Model(Model):
 
 class OpenAIModel(Model):
     """A model that uses an API (e.g., OpenAI APIs) to generate a response to a given prompt."""
-    chatcompletion_models = {"gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613", "gpt-4", "gpt-4-0613", "gpt-4-32k", "gpt-4-32k-0613"}
+    chatcompletion_models = {"gpt-3.5-turbo-0125", "gpt-3.5-turbo", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k-0613", "gpt-4", "gpt-4-0613", "gpt-4-32k", "gpt-4-32k-0613"}
     completion_models = {"gpt-3.5-turbo-instruct"}
 
     def __init__(
