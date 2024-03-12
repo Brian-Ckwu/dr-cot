@@ -229,11 +229,17 @@ class DxPredExperiment(Experiment):
 
     def run(self) -> None:
         """Run the experiment with the given configuration."""
-        ncorrect = 0
-        indices = []
-        labels = []
-        preds = []
+        save_path = self.config.log_path / "eval_results.json"
+        if os.path.exists(save_path):
+            results = json.loads(save_path.read_bytes())
+            indices, labels, preds = index_label_pred_to_lists(triples=results["label_pred_pairs"])
+            metrics = Metrics(indices, labels, preds)
+        else:
+            indices, labels, preds = [], [], []
         for i, pat in self.pats.iterrows():
+            if i in set(indices):
+                print(f"Skip patient index {i} since it's already runned before.")
+                continue
             patient_profile = self.get_new_patient_context(pat).text()
             prompt = self.make_dx_pred_prompt(patient_profile)
             pred = self.predict_diagnosis(prompt)
@@ -243,8 +249,9 @@ class DxPredExperiment(Experiment):
             preds.append(pred)
             if self.debug:
                 print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
-        metrics = Metrics(indices, labels, preds)
-        metrics.save_results(save_path=self.config.log_path / "eval_results.json")
+            # Save results at each instance
+            metrics = Metrics(indices, labels, preds)
+            metrics.save_results(save_path)
         print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Total samples: {len(preds)})")
 
 def parse_args() -> Namespace:
