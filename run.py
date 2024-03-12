@@ -236,9 +236,9 @@ class DxPredExperiment(Experiment):
             metrics = Metrics(indices, labels, preds)
         else:
             indices, labels, preds = [], [], []
-        for i, pat in self.pats.iterrows():
+        for cnt, (i, pat) in enumerate(self.pats.iterrows(), start=1):
             if i in set(indices):
-                print(f"Skip patient index {i} since it's already runned before.")
+                print(f"{cnt}. Skip patient index {i} since it's already runned before.")
                 continue
             patient_profile = self.get_new_patient_context(pat).text()
             prompt = self.make_dx_pred_prompt(patient_profile)
@@ -248,7 +248,7 @@ class DxPredExperiment(Experiment):
             labels.append(label)
             preds.append(pred)
             if self.debug:
-                print(f"{str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
+                print(f"{cnt}. {str(i).zfill(6)} -> Ground Truth: {Fore.RED + label + Style.RESET_ALL} / Prediction: {Fore.BLUE + pred + Style.RESET_ALL}{f' {Fore.GREEN}✔{Style.RESET_ALL}' if (pred == label) else ''}")
             # Save results at each instance
             metrics = Metrics(indices, labels, preds)
             metrics.save_results(save_path)
