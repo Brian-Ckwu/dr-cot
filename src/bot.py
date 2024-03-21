@@ -65,10 +65,10 @@ class Bot(object):
         raise NotImplementedError
     
     def get_prompt(self) -> Any:
-        if self.model.config["model"] in self.model.chatcompletion_models:
-            prompt = self.get_chatcompletion_prompt()
-        else:
-            prompt = self.get_completion_prompt()
+        # if self.model.config["model"] in self.model.chatcompletion_models:
+        #     prompt = self.get_chatcompletion_prompt()
+        # else:
+        prompt = self.get_completion_prompt()
         return prompt
 
     def get_role_string(self) -> str:
@@ -473,6 +473,62 @@ class DoctorBot(Bot):
             "model": self.model.config,
             "prompt": self.get_prompt()
         }
+
+class NaiveZeroShotDoctorBot(DoctorBot):
+    GREETING_MSG = "How may I help you today?"
+    DX_DELIMITER = '\n'
+
+    def __init__(self, llm: Model, prompts: dict[str, str], dxs: list[str] = None, debug: bool = False):
+        self.llm = llm
+        self.prompts = prompts
+        self.dxs = dxs
+        self.debug = debug
+        self.dialogue = Dialogue(data=[])
+
+    def greeting(self) -> str:
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=self.GREETING_MSG)
+        return self.GREETING_MSG
+
+    def ask_finding(self, utterance: str) -> str:
+        self.dialogue.add_utterance(role=Role.PATIENT, utterance=utterance)
+        prompt = self.prompts["ask_finding"].format(dialogue=self.dialogue.text())
+        res = self.llm.generate(prompt)
+        question = json.loads(res)["question"]  # parse response
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=question)
+        if self.debug:
+            print("***** Debugging info in NaiveZeroShotDoctorBot.ask_finding() *****")
+            print(Fore.BLUE + "\n===== Prompt =====")
+            print(prompt + Style.RESET_ALL)
+            print(Fore.RED + "\n===== Response =====")
+            print(res + Style.RESET_ALL)
+        return question
+
+    def make_diagnosis(self, utterance: str) -> str:
+        self.dialogue.add_utterance(role=Role.PATIENT, utterance=utterance)
+        prompt = self.prompts["make_diagnosis"].format(dialogue=self.dialogue.text(), diagnoses=self.DX_DELIMITER.join(self.dxs))
+        res = self.llm.generate(prompt)
+        dx = json.loads(res)["diagnosis"]  # parse response
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=dx)
+        if self.debug:
+            print("***** Debugging info in NaiveZeroShotDoctorBot.make_diagnosis() *****")
+            print(Fore.BLUE + "\n===== Prompt =====")
+            print(prompt + Style.RESET_ALL)
+            print(Fore.RED + "\n===== Response =====")
+            print(res + Style.RESET_ALL)
+        return dx
+
+    @property
+    def state(self) -> dict[str, Any]:
+        """Get the state of the bot."""
+        return {
+            "model": self.llm.config,
+            "prompts": self.prompts,
+            "dxs": self.dxs
+        }
+
+    def clear_dialogue(self) -> None:
+        """Clear the dialogue for the bot."""
+        self.dialogue = Dialogue(data=[]) # [] is necessary to create a new dialogue object
 
 class MultiStageDoctorBot(DoctorBot):
     DX_DELIMITER = "; "

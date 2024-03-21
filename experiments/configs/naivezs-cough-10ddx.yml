@@ -1,0 +1,67 @@
+name: debug
+log_path: "./experiments"
+seed: 1126
+
+data:
+  dataset:
+    csv_path: "./ddxplus/release_test_patients.csv"
+    pathology_info_path: "./ddxplus/release_conditions.json"
+    evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
+  sample_size: 10
+  balanced_sampling: true
+  initial_evidence: "cough"
+  possible_diagnoses:
+    - "URTI"
+    - "Viral pharyngitis"
+    - "Bronchitis"
+    - "Influenza"
+    - "Pneumonia"
+    - "GERD"
+    - "Chronic rhinosinusitis"
+    - "Tuberculosis"
+    - "Acute laryngitis"
+    - "Acute otitis media"
+
+patient:
+  config_path: "./prompts/patient/standard.json"
+  model_type: "GoogleModel"
+  model_config:
+    model: "gemini-1.0-pro"  # "gpt-3.5-turbo-instruct"
+    temperature: 0.0
+    candidate_count: 1
+    top_k: 40
+    top_p: 0.95
+    max_output_tokens: 256
+    # max_tokens: 512
+    stop_sequences:
+      - "Doctor:"
+    # stop:
+
+doctor:
+  prompt_mode: "naivezs" # "naivezs", "standard", "drcot", or "multistage"
+  prompt_path: "./prompts/doctor/naivezs/single_prompt.yaml"
+  ask_turns: 8
+  prompt_format: "raw_text" # "raw_text" or "json"
+  model_type: "GoogleModel" # "OpenAIModel", "GoogleModel", or "LlamaModel"
+  model_config:
+    # GoogleModel configs
+    model: "gemini-1.0-pro"
+    temperature: 0.0
+    candidate_count: 1
+    top_k: 40
+    top_p: 0.95
+    max_output_tokens: 256
+    # stop_sequences:
+    #   - "\n"
+    # # OpenAIModel configs
+    # model: "gpt-3.5-turbo-0125"
+    # temperature: 0.0
+    # max_tokens: 2048
+    # stop:
+    #   - "}"
+    # # LlamaModel configs (https://learn.microsoft.com/en-us/azure/ai-studio/how-to/deploy-models-llama?tabs=azure-studio)
+    # model: "Llama-2-7b-chat"
+    # max_tokens: 256
+    # temperature: 0.0
+    # stop:
+    #   - "}"

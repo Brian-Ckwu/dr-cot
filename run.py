@@ -98,7 +98,7 @@ class Experiment(object):
         a = patient_bot.inform_initial_evidence(utterance=q)
         for i in range(self.config.doctor.ask_turns):
             q = doctor_bot.ask_finding(utterance=a)
-            if (q == doctor_bot.NONE_RESPONSE) or (q[-1] != '?'):  # no more questions
+            if (q == doctor_bot.NONE_RESPONSE):  # no more questions
                 self.save_dialogues(index=dialogue_index)
                 dx = q
                 return dx
@@ -254,6 +254,24 @@ class DxPredExperiment(Experiment):
             metrics.save_results(save_path)
         print(f"\nAccuracy: {metrics.accuracy * 100:.2f}% (Total samples: {len(preds)})")
 
+class NaiveZeroShotExperiment(Experiment):
+
+    def __init__(self, config: Namespace, debug: bool = False, api_interval: float = 1.0) -> None:
+        super().__init__(config, debug, api_interval)
+
+    def initialize_doctor(self, possible_diagnoses: list[str]) -> NaiveZeroShotDoctorBot:
+        llm = getattr(model, self.config.doctor.model_type)(config=self.config.doctor.model_config)
+        return NaiveZeroShotDoctorBot(
+            llm=llm,
+            prompts=yaml.safe_load(Path(self.config.doctor.prompt_path).read_text()),
+            dxs=possible_diagnoses,
+            debug=self.debug
+        )
+
+    def extract_dx(self, utterance: str) -> str:
+        """Extract the diagnosis from the given utterance."""
+        return utterance
+
 def parse_args() -> Namespace:
     parser = ArgumentParser()
 
@@ -276,6 +294,8 @@ if __name__ == "__main__":
         experiment = MultiStageExperiment(config, debug=args.debug, api_interval=args.api_interval)
     elif config.doctor.prompt_mode == "dxpred":
         experiment = DxPredExperiment(config, debug=args.debug, api_interval=args.api_interval)
+    elif config.doctor.prompt_mode == "naivezs":
+        experiment = NaiveZeroShotExperiment(config, debug=args.debug, api_interval=args.api_interval)
     else:
         experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
     if args.evaluate:
