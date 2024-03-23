@@ -17,13 +17,14 @@ import google.api_core.exceptions
 
 def retry_with_exponential_backoff(
     func,
-    initial_delay: float = 1,
+    initial_delay: float = 0.25,
     exponential_base: float = 2,
-    max_retries: int = 10,
+    max_retries: int = 5,
     errors: tuple = (
         openai.RateLimitError, openai.APIError,
         google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
-        urllib.error.HTTPError, urllib.error.URLError
+        urllib.error.HTTPError, urllib.error.URLError,
+        ValueError
     ),
 ):
     """Retry a function with exponential backoff."""
@@ -42,14 +43,13 @@ def retry_with_exponential_backoff(
                 num_retries += 1
                 # Check if max retries has been reached
                 if num_retries > max_retries:
-                    raise Exception(
-                        Fore.RED + f"Maximum number of retries ({max_retries}) exceeded." + Style.RESET_ALL
-                    )
-                # Increment the delay
-                delay *= exponential_base
+                    print(Fore.RED + f"Maximum number of retries ({max_retries}) exceeded." + Style.RESET_ALL)
+                    return "I'm sorry. Can you repeat again?"
                 # Sleep for the delay
                 print(Fore.YELLOW + f"Error encountered ({e}). Retry ({num_retries}) after {delay} seconds..." + Style.RESET_ALL)
                 time.sleep(delay)
+                # Increment the delay
+                delay *= exponential_base
             # Raise exceptions for any errors not specified
             except Exception as e:
                 raise e
