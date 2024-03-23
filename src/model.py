@@ -128,7 +128,10 @@ class OpenAIModel(Model):
     def generate(self, prompt: Any) -> str:
         """Generates a response to a given prompt."""
         if self.config["model"] in self.chatcompletion_models:
-            return self.chatcompletion(prompt)
+            messages = [
+                {"role": "user", "content": prompt}
+            ]
+            return self.chatcompletion(messages)
         elif self.config["model"] in self.completion_models:
             return self.completion(prompt)
         else:
