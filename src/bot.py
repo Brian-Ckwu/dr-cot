@@ -491,7 +491,7 @@ class NaiveZeroShotDoctorBot(DoctorBot):
 
     def ask_finding(self, utterance: str) -> str:
         self.dialogue.add_utterance(role=Role.PATIENT, utterance=utterance)
-        prompt = self.prompts["ask_finding"].format(dialogue=self.dialogue.text())
+        prompt = self.prompts["ask_finding"].format(dialogue=self.dialogue.text(), diagnoses=self.DX_DELIMITER.join(self.dxs))
         res = self.llm.generate(prompt)
         question = json.loads(res)["question"]  # parse response
         self.dialogue.add_utterance(role=Role.DOCTOR, utterance=question)

@@ -1,0 +1,21 @@
+ask_finding: |
+  Act as a doctor taking a medical history from a patient. Try your best to ask comprehensive and important questions in order to make an accurate final diagnosis.
+
+  Here is the medical dialogue history between you and the patient:
+  {dialogue}
+
+  Here are the possible diagnoses you can choose from (each separated by a newline character):
+  {diagnoses}
+
+  According to the medical dialogue history, ask the most important question about a single clinical finding you want to know to differentiate the possible diagnoses. Provide your question in the following JSON format: {{"question": <question>}}.
+
+make_diagnosis: |
+  Act as a doctor taking a medical history from a patient. Try your best to make an accurate final diagnosis based on the following medical dialogue history.
+
+  Here is the medical dialogue history between you and the patient:
+  {dialogue}
+
+  Here are the possible diagnoses you can choose from (each separated by a newline character):
+  {diagnoses}
+
+  Provide your final diagnosis in the following JSON format: {{"diagnosis": <diagnosis>}}.

@@ -9,18 +9,18 @@ data:
     evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
   sample_size: 100
   balanced_sampling: true
-  initial_evidence: "cough"
+  initial_evidence: "nasal congestion"
   possible_diagnoses:
     - "URTI"
     - "Viral pharyngitis"
-    - "Bronchitis"
     - "Influenza"
-    - "Pneumonia"
-    - "GERD"
-    - "Chronic rhinosinusitis"
-    - "Tuberculosis"
-    - "Acute laryngitis"
     - "Acute otitis media"
+    - "Allergic sinusitis"
+    - "Cluster headache"
+    - "Bronchitis"
+    - "Pneumonia"
+    - "Chronic rhinosinusitis"
+    - "Croup"
 
 patient:
   config_path: "./prompts/patient/standard.json"

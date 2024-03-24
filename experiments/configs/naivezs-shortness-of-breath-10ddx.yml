@@ -9,18 +9,18 @@ data:
     evidences_info_path: "./ddxplus/our_evidences_to_qa_v2.json"
   sample_size: 100
   balanced_sampling: true
-  initial_evidence: "cough"
+  initial_evidence: "shortness of breath"
   possible_diagnoses:
-    - "URTI"
-    - "Viral pharyngitis"
-    - "Bronchitis"
-    - "Influenza"
+    - "Anemia"
+    - "Pulmonary embolism"
     - "Pneumonia"
-    - "GERD"
-    - "Chronic rhinosinusitis"
-    - "Tuberculosis"
-    - "Acute laryngitis"
-    - "Acute otitis media"
+    - "Panic attack"
+    - "Anaphylaxis"
+    - "Bronchitis"
+    - "Acute pulmonary edema"
+    - "Possible NSTEMI / STEMI"
+    - "Acute dystonic reactions"
+    - "Pericarditis"
 
 patient:
   config_path: "./prompts/patient/standard.json"
