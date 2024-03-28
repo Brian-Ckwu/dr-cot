@@ -1,3 +1,4 @@
+import json
 from typing import Any
 from argparse import Namespace
 from colorama import Fore, Style
@@ -29,6 +30,12 @@ def display_dialogue(dial: list[dict[str, str]]) -> None:
             print(f"{Fore.BLUE + Style.BRIGHT}Doctor: {utter['utterance']}{Style.RESET_ALL}")
         else:
             raise ValueError(f"Unknown role: {utter['role']}")
+
+def parse_json_from_string(s):
+    start_index = s.index('{')
+    end_index = s.rfind('}') + 1
+    json_str = s[start_index:end_index]
+    return json.loads(json_str)
 
 # manual testing
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from pathlib import Path
 from colorama import Fore, Style
 from argparse import ArgumentParser, Namespace
 
-from src import model
+from src import DoctorBot, model
 from src import *
 
 class Experiment(object):
@@ -272,6 +272,24 @@ class NaiveZeroShotExperiment(Experiment):
         """Extract the diagnosis from the given utterance."""
         return utterance
 
+class ZeroShotDRCoTExperiment(Experiment):
+    NULL_VALUE = "NULL"
+
+    def __init__(self, config: Namespace, debug: bool = False, api_interval: int = 0) -> None:
+        super().__init__(config, debug, api_interval)
+
+    def initialize_doctor(self, possible_diagnoses: list[str]) -> ZeroShotDRCoTDoctorBot:
+        llm = getattr(model, self.config.doctor.model_type)(config=self.config.doctor.model_config)
+        return ZeroShotDRCoTDoctorBot(
+            llm=llm,
+            prompts=yaml.safe_load(Path(self.config.doctor.prompt_path).read_text()),
+            dxs=possible_diagnoses,
+            debug=self.debug
+        )
+
+    def extract_dx(self, utterance: str) -> str:
+        return utterance.get("diagnosis", self.NULL_VALUE)
+
 def parse_args() -> Namespace:
     parser = ArgumentParser()
 
@@ -296,6 +314,8 @@ if __name__ == "__main__":
         experiment = DxPredExperiment(config, debug=args.debug, api_interval=args.api_interval)
     elif config.doctor.prompt_mode == "naivezs":
         experiment = NaiveZeroShotExperiment(config, debug=args.debug, api_interval=args.api_interval)
+    elif config.doctor.prompt_mode == "zsdrcot":
+        experiment = ZeroShotDRCoTExperiment(config, debug=args.debug, api_interval=args.api_interval)
     else:
         experiment = Experiment(config, debug=args.debug, api_interval=args.api_interval)
     if args.evaluate:

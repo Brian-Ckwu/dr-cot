@@ -1,5 +1,5 @@
 from .data import DDxDataset
-from .bot import PatientBot, DoctorBot, PromptMode, ReasoningStep, MultiStageDoctorBot, NaiveZeroShotDoctorBot
+from .bot import PatientBot, DoctorBot, PromptMode, ReasoningStep, MultiStageDoctorBot, NaiveZeroShotDoctorBot, ZeroShotDRCoTDoctorBot
 from .shot import Shot
 from .context import Context, PatientContext, DoctorContext
 from .dialogue import Dialogue, Role, MultiStageDialogue

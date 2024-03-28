@@ -1,0 +1,21 @@
+ask_finding: |
+  Act as a doctor taking a medical history from a patient. First review the patient's positive and negative clinical findings, formulate ranked differential diagnosis, and ask comprehensive and important questions to narrow down the differential diagnosis. Your goal is to make an accurate final diangosis.
+
+  Here is the medical dialogue history between you and the patient:
+  {dialogue}
+
+  Here are the possible diagnoses you can choose from (each separated by a newline character):
+  {diagnoses}
+
+  According to the medical dialogue history, follow the step-by-step reasoning plan in JSON to ask the most important question about a single clinical finding you want to know to differentiate the possible diagnoses. Provide your output in the following JSON format: {{"positive_clinical_findings": [], "negative_clinical_findings": [], "ranked_differential_diagnois": [], "question_to_ask": ""}}
+
+make_diagnosis: |
+  Act as a doctor taking a medical history from a patient. Try your best to make an accurate final diagnosis based on the following medical dialogue history.
+
+  Here is the medical dialogue history between you and the patient:
+  {dialogue}
+
+  Here are the possible diagnoses you can choose from (each separated by a newline character):
+  {diagnoses}
+
+  According to the medical dialogue history, follow the step-by-step reasoning plan in JSON to make an accurate final diagnosis. Provide your output in the following JSON format: {{"positive_clinical_findings": [], "negative_clinical_findings": [], "rationale_for_the_final_diagnosis": "", "diagnosis": ""}}

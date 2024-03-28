@@ -8,8 +8,9 @@ from colorama import Fore, Style
 
 from .shot import Shot
 from .context import Context
-from .dialogue import Dialogue, Role, MultiStageDialogue
+from .dialogue import Dialogue, Role, MultiStageDialogue, ZeroShotDRCoTDialogue
 from .model import Model, OpenAIModel
+from .utils import parse_json_from_string
 from .prompt import SymptomExtractorPrompt, DDXPredictorPrompt, QuestionGeneratorPrompt
 
 class PromptFormat(Enum):
@@ -486,7 +487,7 @@ class NaiveZeroShotDoctorBot(DoctorBot):
         self.dialogue = Dialogue(data=[])
 
     def greeting(self) -> str:
-        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=self.GREETING_MSG)
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=json.dumps({"question_to_ask": self.GREETING_MSG}))
         return self.GREETING_MSG
 
     def ask_finding(self, utterance: str) -> str:
@@ -529,6 +530,56 @@ class NaiveZeroShotDoctorBot(DoctorBot):
     def clear_dialogue(self) -> None:
         """Clear the dialogue for the bot."""
         self.dialogue = Dialogue(data=[]) # [] is necessary to create a new dialogue object
+
+class ZeroShotDRCoTDoctorBot(NaiveZeroShotDoctorBot):
+
+    def __init__(self, llm: Model, prompts: dict[str, str], dxs: list[str] = None, debug: bool = False):
+        self.llm = llm
+        self.prompts = prompts
+        self.dxs = dxs
+        self.debug = debug
+        self.dialogue = ZeroShotDRCoTDialogue(data=[])
+
+    def ask_finding(self, utterance: str) -> str:
+        self.dialogue.add_utterance(role=Role.PATIENT, utterance=utterance)
+        prompt = self.prompts["ask_finding"].format(dialogue=self.dialogue.text(), diagnoses=self.DX_DELIMITER.join(self.dxs))
+        res = self.llm.generate(prompt)
+        if self.debug:
+            print("***** Debugging info in NaiveZeroShotDoctorBot.ask_finding() *****")
+            print(Fore.BLUE + "\n===== Prompt =====")
+            print(prompt + Style.RESET_ALL)
+            print(Fore.RED + "\n===== Response =====")
+            print(res + Style.RESET_ALL)
+        try:
+            res_obj = parse_json_from_string(res)
+        except json.JSONDecodeError as e:
+            print(e)
+            raise NotImplementedError
+        question = res_obj["question_to_ask"]
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=json.dumps(res_obj))
+        return question
+
+    def make_diagnosis(self, utterance: str) -> str:
+        self.dialogue.add_utterance(role=Role.PATIENT, utterance=utterance)
+        prompt = self.prompts["make_diagnosis"].format(dialogue=self.dialogue.text(), diagnoses=self.DX_DELIMITER.join(self.dxs))
+        res = self.llm.generate(prompt)
+        if self.debug:
+            print("***** Debugging info in NaiveZeroShotDoctorBot.make_diagnosis() *****")
+            print(Fore.BLUE + "\n===== Prompt =====")
+            print(prompt + Style.RESET_ALL)
+            print(Fore.RED + "\n===== Response =====")
+            print(res + Style.RESET_ALL)
+        try:
+            res_obj = parse_json_from_string(res)
+        except json.JSONDecodeError as e:
+            print(e)
+            raise NotImplementedError
+        dx = res_obj["diagnosis"]
+        self.dialogue.add_utterance(role=Role.DOCTOR, utterance=json.dumps(res_obj))
+        return dx
+
+    def clear_dialogue(self) -> None:
+        self.dialogue = ZeroShotDRCoTDialogue(data=[])
 
 class MultiStageDoctorBot(DoctorBot):
     DX_DELIMITER = "; "

@@ -1,4 +1,5 @@
 import json
+import copy
 from enum import Enum
 from pathlib import Path
 
@@ -76,6 +77,38 @@ class Dialogue(object):
         # reset dialogue state
         if is_json:
             self.parse_dialogue()
+
+class ZeroShotDRCoTDialogue(Dialogue):
+
+    def __init__(self, data: list[dict[str, str]] = []):
+        super().__init__(data)
+
+    def text(self) -> str:
+        sents = list()
+        for turn in self.data:
+            role_text = turn["role"][0].upper() + turn["role"][1:]
+            if turn["role"] == Role.DOCTOR.value:
+                utterance_obj = json.loads(turn["utterance"])
+                if "question_to_ask" in utterance_obj:
+                    utterance = utterance_obj["question_to_ask"]
+                elif "diagnosis" in utterance_obj:
+                    utterance = utterance_obj["diagnosis"]
+                else:
+                    raise ValueError("either 'question_to_ask' or 'diagnosis' should be in the utterance_obj")
+            elif turn["role"] == Role.PATIENT.value:
+                utterance = turn["utterance"]
+            else:
+                raise ValueError("role should be either doctor or patient")
+            sent = f"{role_text}: {utterance}"
+            sents.append(sent)
+        return "\n".join(sents)
+
+    def save_dialogue(self, save_path: Path, is_json: bool) -> None:
+        data = copy.deepcopy(self.data)
+        for i, turn in enumerate(data):
+            if (turn["role"] == Role.DOCTOR.value) and isinstance(turn["utterance"], str):
+                data[i]["utterance"] = json.loads(data[i]["utterance"])
+        save_path.write_text(json.dumps(data, indent=4))
 
 class MultiStageDialogue(Dialogue):
     """The dialogue between the PatientBot and the DoctorBot in the multi-stage DR-CoT setting.
