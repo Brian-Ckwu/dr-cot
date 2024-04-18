@@ -553,8 +553,14 @@ class ZeroShotDRCoTDoctorBot(NaiveZeroShotDoctorBot):
         try:
             res_obj = parse_json_from_string(res)
         except json.JSONDecodeError as e:
-            print(e)
-            raise NotImplementedError
+            print(Fore.RED + f"Error: {e}")
+            print(Fore.YELLOW + res)
+            res = self.convert_to_valid_json(res)
+            print(Fore.BLUE + f"After conversion: {res}" + Style.RESET_ALL)
+            try:
+                res_obj = parse_json_from_string(res)
+            except json.JSONDecodeError as e:
+                raise NotImplementedError
         question = res_obj["question_to_ask"]
         self.dialogue.add_utterance(role=Role.DOCTOR, utterance=json.dumps(res_obj))
         return question
@@ -572,14 +578,24 @@ class ZeroShotDRCoTDoctorBot(NaiveZeroShotDoctorBot):
         try:
             res_obj = parse_json_from_string(res)
         except json.JSONDecodeError as e:
-            print(e)
-            raise NotImplementedError
+            print(Fore.RED + f"Error: {e}")
+            print(Fore.YELLOW + res)
+            res = self.convert_to_valid_json(res)
+            print(Fore.BLUE + f"After conversion: {res}" + Style.RESET_ALL)
+            try:
+                res_obj = parse_json_from_string(res)
+            except json.JSONDecodeError as e:
+                raise NotImplementedError
         dx = res_obj["diagnosis"]
         self.dialogue.add_utterance(role=Role.DOCTOR, utterance=json.dumps(res_obj))
         return dx
 
     def clear_dialogue(self) -> None:
         self.dialogue = ZeroShotDRCoTDialogue(data=[])
+
+    def convert_to_valid_json(self, res: str) -> str:
+        prompt = f"Please convert the following string into a valid JSON format:\n{res}"
+        return self.llm.generate(prompt)
 
 class MultiStageDoctorBot(DoctorBot):
     DX_DELIMITER = "; "
