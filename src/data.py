@@ -40,6 +40,8 @@ class DDxDataset(object):
         df_ie_top1 = df_ie[df_ie.DIFFERENTIAL_DIAGNOSIS.apply(lambda l: l[0][0]) == df_ie.PATHOLOGY]
         if ddxs is not None:
             df_ie_top1 = df_ie_top1[df_ie_top1.PATHOLOGY.isin(ddxs)]
+            ddxs = list(df_ie_top1.groupby("PATHOLOGY").size().sort_values(ascending=False).keys())
+            print(f"There will be {len(ddxs)} possible diagnoses in total of the initial evidence {ie}.")
         if not balance:
             return df_ie_top1.sample(n=min(n, len(df_ie_top1)), random_state=seed)
         else:
@@ -48,7 +50,17 @@ class DDxDataset(object):
                 df_ddx = df_ie_top1[df_ie_top1.PATHOLOGY == ddx]
                 df = df_ddx.sample(n=min(n // len(ddxs), len(df_ddx)), random_state=seed)
                 dfs.append(df)
-            return pd.concat(dfs, axis=0)
+            result_df = pd.concat(dfs, axis=0)
+            remain_df = df_ie_top1.drop(result_df.index)
+            while len(result_df) < n:
+                ddxs = list(remain_df.groupby("PATHOLOGY").size().sort_values(ascending=False).keys())
+                for ddx in ddxs:
+                    if len(result_df) >= n:
+                        break
+                    add_df = remain_df[remain_df.PATHOLOGY == ddx].sample(n=1, random_state=seed)
+                    result_df = pd.concat([result_df, add_df], axis=0)
+                    remain_df = remain_df.drop(add_df.index)
+            return result_df
     
     def get_evidence_set_of_initial_evidence(self, ie: str, field: str) -> set:
         """field: 'EVIDENCES' or 'EVIDENCES_ENG' or 'EVIDENCES_UNCONVERTED'"""
