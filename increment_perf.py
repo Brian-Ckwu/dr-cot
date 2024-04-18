@@ -8,7 +8,7 @@ from tqdm import tqdm
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 
-from src.utils import index_label_pred_to_lists
+from src.utils import index_label_pred_to_lists, parse_json_from_string
 from src.model import Model, GoogleModel
 
 DX_PROMPT = """\
@@ -22,7 +22,18 @@ Here are the possible diagnoses you can choose from (each separated by a newline
 
 Provide one most likely diagnosis in the following JSON format: {{"diagnosis": ""}}"""
 
-def extract_dxs(llm: Model, dial: list[dict], dxs_set: list[str]) -> list[str]:
+DX_PROMPT_DRCOT = """\
+Act as a doctor and determine the most likely diagnosis according to the medical dialogue history.
+
+Here is the medical dialogue history between a doctor and a patient:
+{dialogue}
+
+Here are the possible diagnoses you can choose from (each separated by a newline character):
+{diagnoses}
+
+According to the medical dialogue history, follow the step-by-step reasoning plan in JSON to make an accurate final diagnosis. Provide your output in the following JSON format: {{"positive_clinical_findings": [], "negative_clinical_findings": [], "rationale_for_the_final_diagnosis": "", "diagnosis": ""}}"""
+
+def extract_dxs(llm: Model, dial: list[dict], dxs_set: list[str], prompt_template: str) -> list[str]:
     dxs_text = '\n'.join(dxs_set)
     dxs_list = list()
     assert len(dial) % 2 == 0
@@ -32,13 +43,19 @@ def extract_dxs(llm: Model, dial: list[dict], dxs_set: list[str]) -> list[str]:
         dial_lines.append(f"{dial[i]['role']}: {dial[i]['utterance']}")
         dial_lines.append(f"{dial[i + 1]['role']}: {dial[i + 1]['utterance']}")
         dial_text = '\n'.join(dial_lines)
-        prompt = DX_PROMPT.format(dialogue=dial_text, diagnoses=dxs_text)
+        prompt = prompt_template.format(dialogue=dial_text, diagnoses=dxs_text)
         res = llm.generate(prompt)
-        dx = json.loads(res)["diagnosis"]
+        parsed_obj = parse_json_from_string(res)
+        dx = parsed_obj["diagnosis"]
         dxs_list.append(dx)
     return dxs_list
 
 def extract_dxs_pipe(args: Namespace) -> None:
+    output_filename = "dx_extraction.jsonl"
+    prompt_template = DX_PROMPT
+    if args.drcot:
+        output_filename = "dx_extraction_drcot.jsonl"
+        prompt_template = DX_PROMPT_DRCOT
     llm = GoogleModel(config={
         "model": "gemini-1.0-pro",
         "temperature": 0.0,
@@ -49,7 +66,7 @@ def extract_dxs_pipe(args: Namespace) -> None:
     dxs_set = config["data"]["possible_diagnoses"]
     dial_dir = args.exp_dir / "patient_dialogues"
     eval_results = json.loads((args.exp_dir / "eval_results.json").read_bytes())
-    output_file = args.exp_dir / "dx_extraction.jsonl"
+    output_file = args.exp_dir / output_filename
     indices = set()
     if output_file.exists():
         with jsonlines.open(output_file) as f:
@@ -61,14 +78,19 @@ def extract_dxs_pipe(args: Namespace) -> None:
             continue
         dial_path = dial_dir / f"{index}.json"
         dial = json.loads(dial_path.read_bytes())
-        dxs_list = extract_dxs(llm, dial, dxs_set)
+        dxs_list = extract_dxs(llm, dial, dxs_set, prompt_template)
         with open(output_file, mode="a") as f:
             f.write(json.dumps({"index": index, "dxs_list": dxs_list}) + '\n')
         if args.debug:
             break
 
 def calc_acc_pipe(args: Namespace) -> list[float]:
-    dxs_list_file = args.exp_dir / "dx_extraction.jsonl"
+    dxs_list_filename = "dx_extraction.jsonl"
+    output_filename = "accs_per_turn.json"
+    if args.drcot:
+        dxs_list_filename = "dx_extraction_drcot.jsonl"
+        output_filename = "accs_per_turn_drcot.json"
+    dxs_list_file = args.exp_dir / dxs_list_filename
     extract_dxs_pipe(args)  # Automatically run this
     # Load rows of dxs_list
     with jsonlines.open(dxs_list_file) as f:
@@ -86,7 +108,7 @@ def calc_acc_pipe(args: Namespace) -> list[float]:
         if args.debug:
             break
     accs = [cnt / len(rows) for cnt in correct_counts]
-    output_path = args.exp_dir / "accs_per_turn.json"
+    output_path = args.exp_dir / output_filename
     output_path.write_text(json.dumps(obj={"accs": accs}))
     print(f"Accuracies per turn: {accs}")
     return accs
@@ -105,6 +127,11 @@ def setup_args() -> Namespace:
         choices=["extract_dxs", "calc_acc"],
         required=True,
         help="Which pipeline to run"
+    )
+    parser.add_argument(
+        "--drcot",
+        action="store_true",
+        help="Use DRCoT in each diagnosis prediction or not."
     )
     parser.add_argument(
         "--debug",
