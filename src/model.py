@@ -14,6 +14,8 @@ import openai
 from openai import OpenAI
 import google.generativeai as genai
 import google.api_core.exceptions
+import groq
+from groq import Groq
 
 def retry_with_exponential_backoff(
     func,
@@ -24,6 +26,7 @@ def retry_with_exponential_backoff(
         openai.RateLimitError, openai.APIError,
         google.api_core.exceptions.ResourceExhausted, google.api_core.exceptions.ServiceUnavailable, google.api_core.exceptions.GoogleAPIError,
         urllib.error.HTTPError, urllib.error.URLError,
+        groq.RateLimitError, groq.InternalServerError, groq.APIConnectionError,
         ValueError
     ),
 ):
@@ -66,6 +69,45 @@ class Model(ABC):
     def generate(self, prompt: Any) -> str:
         """Generates a response to a given prompt."""
         raise NotImplementedError
+
+class GroqModel(Model):
+    model_list = [
+        "llama3-8b-8192",
+        "llama3-70b-8192",
+        "mixtral-8x7b-32768",
+        "gemma-7b-it"
+    ]
+
+    def __init__(
+        self,
+        config: Union[dict, Namespace]
+    ) -> None:
+        self.client = Groq(
+            api_key=os.environ.get("GROQ_API_KEY")
+        )
+        if isinstance(config, Namespace):
+            config = vars(config)
+        self.config = config
+
+    @retry_with_exponential_backoff
+    def generate(self, prompt: str) -> str:
+        res = self.client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Act as a medical doctor and provide your output in valid JSON. Follow the JSON format specified in the instruction."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model=self.config["model"],
+            temperature=self.config["temperature"],
+            max_tokens=self.config["max_tokens"],
+            response_format={"type": "json_object"}  # NOTE
+        )
+        return res.choices[0].message.content
 
 class GoogleModel(Model):
     """A model that uses Google APIs to generate a response to a given prompt."""
