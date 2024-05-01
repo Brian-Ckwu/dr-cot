@@ -5,6 +5,7 @@ import json
 import yaml
 import shutil
 import pandas as pd
+from tqdm import tqdm
 from pathlib import Path
 from colorama import Fore, Style
 from argparse import ArgumentParser, Namespace
@@ -120,11 +121,13 @@ class Experiment(object):
 
     def run(self) -> None:
         """Run the experiment with the given configuration."""
-        for i, pat in self.pats.iterrows():
-            print(f"\n===== Patient Index {i} =====")
+        for i, pat in tqdm(self.pats.iterrows(), total=len(self.pats), dynamic_ncols=True):
+            if self.debug:
+                print(f"\n===== Patient Index {i} =====")
             doctor_save_path = self.config.doctor_log_path / f"{i}.json"
             if os.path.exists(doctor_save_path):
-                print(f"Skipping patient index {i} because it already exists.")
+                if self.debug:
+                    print(f"Skipping patient index {i} because it already exists.")
                 final_utter = json.loads(doctor_save_path.read_bytes())[-1]
                 dx = self.extract_dx(final_utter["utterance"])
             else:
@@ -133,7 +136,8 @@ class Experiment(object):
                 self.doctor_bot.clear_dialogue()
                 self.save_patient_profile(index=i)
                 dx = self.conduct_history_taking(self.doctor_bot, self.patient_bot, dialogue_index=i)
-            print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
+            if self.debug:
+                print(f"Ground truth: {pat.PATHOLOGY}; Prediction: {dx}")
 
     def extract_dx(self, utterance: str) -> str:
         """Extract the diagnosis from the given utterance."""
