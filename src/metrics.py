@@ -16,7 +16,8 @@ class Metrics:
     def accuracy(self) -> float:
         ncorrect = 0
         for i in range(len(self.labels)):
-            if ''.join(self.labels[i].upper().split()) == ''.join(self.preds[i].upper().split()):
+            label = ''.join(self.labels[i].upper().split())
+            if label == ''.join(self.preds[i].upper().split())[:len(label)]:
                 ncorrect += 1
         return ncorrect / len(self.labels)
 

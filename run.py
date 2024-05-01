@@ -11,8 +11,10 @@ from argparse import ArgumentParser, Namespace
 
 from src import DoctorBot, model
 from src import *
+from src.utils import parse_json_from_string
 
 class Experiment(object):
+    NULL_VALUE = "NULL"
 
     def __init__(self, config: Namespace, debug: bool = False, api_interval: float = 1.0) -> None:
         self.config = config
@@ -270,10 +272,14 @@ class NaiveZeroShotExperiment(Experiment):
 
     def extract_dx(self, utterance: str) -> str:
         """Extract the diagnosis from the given utterance."""
-        return utterance
+        if isinstance(utterance, str):
+            utterance = parse_json_from_string(utterance)
+        dx = utterance.get("diagnosis", self.NULL_VALUE)
+        if not isinstance(dx, str):
+            return self.NULL_VALUE
+        return dx
 
 class ZeroShotDRCoTExperiment(Experiment):
-    NULL_VALUE = "NULL"
 
     def __init__(self, config: Namespace, debug: bool = False, api_interval: int = 0) -> None:
         super().__init__(config, debug, api_interval)
